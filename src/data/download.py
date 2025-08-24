@@ -1,0 +1,59 @@
+from rich import print
+
+import fastf1
+import fastf1.logger
+import time
+
+def download_schedule(year, include_testing=False):
+    schedule = fastf1.get_event_schedule(year, include_testing=include_testing)
+    return schedule
+
+def download_session(year, gp, session_type='R'):
+    session = fastf1.get_session(year, gp, session_type)
+    session.load()
+    return session
+
+def get_locations_from_schedule(schedule):
+    locations = schedule['Location'].tolist()
+    return locations
+
+def get_rounds_from_schedule(schedule):
+    rounds = schedule['RoundNumber'].tolist()
+    return rounds
+
+if __name__ == "__main__":
+    fastf1.Cache.enable_cache('../../data/cache') # Enable caching to speed up data retrieval
+    fastf1.logger.set_log_level('ERROR')  # Set log level to ERROR to reduce verbosity
+
+    # The years for which data for the full season is available
+    data_years = [2018, 2019, 2020, 2021, 2022, 2023, 2024] 
+
+    # Start a timer to measure download duration
+    download_start_time = time.time()
+    print()
+
+    for year in data_years:
+        print(f"Downloading data for the {year} season")
+
+        # Get the schedule for the year
+        schedule = download_schedule(year)
+        print(schedule[['RoundNumber', 'EventName', 'Location']])
+        # Get the round numbers from the schedule
+        schedule_rounds = get_rounds_from_schedule(schedule)
+        schedule_locations = get_locations_from_schedule(schedule)
+
+        for round in schedule_rounds:
+            print(f" > Downloading data for Round {round} - {schedule_locations[round - 1]}")
+
+            # For each round, download the results from the session
+            gp_session = download_session(year, round, 'R') # for this project, we only want the race results
+            gp_session.load()
+
+            # Save the results to a CSV file in the raw data directory
+            data_file_name = f'{year}_Round_{round}_{schedule_locations[round - 1]}_results.csv'
+            gp_session.results.to_csv(f'../../data/raw/{data_file_name}', index=False)
+            print(f"   - Saved results to [green]data/raw/{data_file_name}[/green]", end='\n\n')
+    
+    download_end_time = time.time()
+    total_download_time = download_end_time - download_start_time
+    print(f"Data download completed in {total_download_time:.2f} seconds")

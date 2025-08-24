@@ -1,2 +1,9 @@
 # Ignore the venv directory
 venv/
+
+# Ignore the data directory
+data/
+data/cache/
+data/raw/
+data/processed/
+!src/data/
