@@ -128,5 +128,5 @@ if __name__ == "__main__":
     
     # Export the cleaned all seasons data and the training data to CSV files
     all_seasons_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "all_seasons_data.csv"), index=False)
-    training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "training_data.csv"), index=False)
+    training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)
     print("Data cleaning and feature engineering completed.", end="\n\n")
