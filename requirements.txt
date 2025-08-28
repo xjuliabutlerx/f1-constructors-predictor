@@ -52,6 +52,7 @@ jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.3
 kiwisolver==1.4.9
 lark==1.2.2
+lightgbm==4.6.0
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
 matplotlib==3.10.5
