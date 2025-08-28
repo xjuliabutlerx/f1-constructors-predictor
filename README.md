@@ -6,4 +6,4 @@ This project applies machine learning to forecast the final rankings of Formula 
 
 ## The Plan
 
-I will be using the `fastf1` Python library to gather historical data, the Pytorch (`torch`) library to build a custom classification model, and Streamlit to create an interactive dashboard for users to experiment with different scenarios and view predictions in real time.
+I will be using the `fastf1` Python library to gather historical data, the Pytorch (`torch`) library to build a custom ranking model, and Streamlit to create an interactive dashboard for users to experiment with different scenarios and view predictions in real time.
