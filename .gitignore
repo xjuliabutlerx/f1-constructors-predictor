@@ -7,3 +7,6 @@ data/
 
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+# Ignore pycaches
+__pycache__/

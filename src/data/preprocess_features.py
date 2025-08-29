@@ -1,10 +1,9 @@
 from rich import print
+from setup import PREPROCESSED_DATA_PATH, CLEAN_DATA_PATH
 
 import os
 import pandas as pd
 
-CLEAN_DATA_PATH = "../../data/clean/"
-PREPROCESSED_DATA_PATH = "../../data/preprocessed/"
 PREPROCESSED_DATA_FILES = os.listdir(PREPROCESSED_DATA_PATH)
 
 def normalize_teamids(df:pd.DataFrame):

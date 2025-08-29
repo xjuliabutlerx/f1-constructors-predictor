@@ -1,7 +1,9 @@
 from rich import print
+from setup import RAW_DATA_PATH, CACHE_PATH, DATA_PATH
 
 import fastf1
 import fastf1.logger
+import os
 import time
 
 def download_schedule(year:int, include_testing:bool=False):
@@ -26,11 +28,20 @@ def get_rounds_from_schedule(schedule):
     return rounds
 
 if __name__ == "__main__":
-    fastf1.Cache.enable_cache('../../data/cache') # Enable caching to speed up data retrieval
+    if not os.path.exists(os.path.join(os.getcwd(), DATA_PATH)):
+        os.mkdir(DATA_PATH)
+
+    if not os.path.exists(os.path.join(os.getcwd(), CACHE_PATH)):
+        os.mkdir(CACHE_PATH)
+
+    if not os.path.exists(os.path.join(os.getcwd(), RAW_DATA_PATH)):
+        os.mkdir(RAW_DATA_PATH)
+
+    fastf1.Cache.enable_cache(CACHE_PATH) # Enable caching to speed up data retrieval
     fastf1.logger.set_log_level('ERROR')  # Set log level to ERROR to reduce verbosity
 
     # The years for which data for the full season is available
-    data_years = [2018, 2019, 2020, 2021, 2022, 2023, 2024] 
+    data_years = [2023, 2024] 
 
     # Start a timer to measure download duration
     download_start_time = time.time()

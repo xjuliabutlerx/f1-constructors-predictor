@@ -1,10 +1,9 @@
 from rich import print
+from setup import RAW_DATA_PATH, PREPROCESSED_DATA_PATH
 
 import os
 import pandas as pd
 
-RAW_DATA_PATH = "../../data/raw/"
-PREPROCESSED_DATA_PATH = "../../data/preprocessed/"
 RAW_DATA_FILES = os.listdir(RAW_DATA_PATH)
 
 def get_data_files_for_year(year:str):
