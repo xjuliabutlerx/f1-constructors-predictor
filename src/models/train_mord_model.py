@@ -1,13 +1,15 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
-from datetime import date
+from datetime import datetime
 from mord import LogisticAT
 from rich import print
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.preprocessing import StandardScaler
 
 CLEAN_DATA_PATH = "../../data/clean/"
 CM_FIG_PATH = "./cms/"
@@ -26,23 +28,33 @@ if __name__ == "__main__":
     feature_columns = ["Round", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", \
                         "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear"]
     
-    X = training_data_df[feature_columns]
+    X = training_data_df[feature_columns].copy()
     y = training_data_df["FinalRank"]
+
+    # Transform right-skewed data features to compress large values and stretch small values (try to make these feature more Gaussian)
+    for col in ["DNFRate", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear"]:
+        # (log(1+x))
+        X[col] = np.log1p(X[col])
 
     # Split the data into training and testing sets
     print(f" > Splitting the data into training and testing sets")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=24, shuffle=True, stratify=y)
+
+    # Normalize the input features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     # Initialize and train the ordinal logistic regression model
     model = LogisticAT(alpha=1.0)
 
     # Traing the model
     print(f" > Training the ordinal logistic regression model")
-    model.fit(X_train, y_train)
+    model.fit(X_train_scaled, y_train)
 
     # Make predictions on the test set
     print(f" > Making predictions on the test set")
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X_test_scaled)
 
     print(f" > Model training and prediction completed", end="\n\n")
 
@@ -61,5 +73,5 @@ if __name__ == "__main__":
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.title("Confusion Matrix")
-    plt.savefig(os.path.join(CM_FIG_PATH, f"mord_model_cm_{date.today().strftime('%Y-%m-%d %H:%M')}.png"))
+    plt.savefig(os.path.join(CM_FIG_PATH, f"mord_model_cm_{datetime.now().strftime('%Y-%m-%d %H:%M')}.png"))
     plt.show()
