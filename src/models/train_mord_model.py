@@ -1,15 +1,15 @@
-import os
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-
 from datetime import datetime
 from mord import LogisticAT
 from rich import print
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.preprocessing import StandardScaler
+
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
+import seaborn as sns
 
 CLEAN_DATA_PATH = "../../data/clean/"
 CM_FIG_PATH = "./cms/"

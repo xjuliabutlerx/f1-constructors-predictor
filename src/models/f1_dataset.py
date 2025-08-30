@@ -1,8 +1,8 @@
+from torch.utils.data import Dataset
+
 import numpy as np
 import pandas as pd
 import torch
-
-from torch.utils.data import Dataset
 
 class F1Dataset(Dataset):
 
@@ -27,4 +27,4 @@ class F1Dataset(Dataset):
     
 if __name__ == "__main__":
     import os
-    dataset = F1Dataset(os.path.join("../../data/clean/", "training_data.csv"))
+    dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_data.csv"))

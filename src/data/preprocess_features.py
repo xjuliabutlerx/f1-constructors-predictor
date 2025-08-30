@@ -1,5 +1,5 @@
 from rich import print
-from setup import PREPROCESSED_DATA_PATH, CLEAN_DATA_PATH
+from paths import PREPROCESSED_DATA_PATH, CLEAN_DATA_PATH
 
 import os
 import pandas as pd
