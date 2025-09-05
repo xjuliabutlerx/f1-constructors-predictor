@@ -1,0 +1,8 @@
+The best model I've trained so far has the timestamp 2025-09-04_23:56. I was unfortunately unable to save all its output, but this was the last thing printed in the console:
+
+Early Stopping: no improvement for 15 epochs. Best rho=0.9567 @ epoch 21.
+
+Evaluating model...
+ > Mean Absolute Error: 0.4571
+ > Median Absolute Error: 0.0000
+ > Maximum Error: 3.0000

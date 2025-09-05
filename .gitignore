@@ -5,8 +5,21 @@ venv/
 data/
 !src/data/
 
+# Ignore the archive directory
+archive/
+
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
 # Ignore pycaches
 __pycache__/
+
+# Ignore any .DS_Store
+.DS_Store
+
+# Don't push any checkpoints or models for now
+*.pth
+*.pt
+
+# Ignore the training data directory since this is for personal use
+training_data/
