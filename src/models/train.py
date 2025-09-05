@@ -62,7 +62,7 @@ def rank_misalignment_heatmap(final_test_df:pd.DataFrame, all_y_true, all_y_pred
                 yticklabels=[f"True {i}" for i in range(1, team_count+1)])
     plt.xlabel("Predicted Rank")
     plt.ylabel("True Rank")
-    plt.title(f"F1 Constructor Rank Misalignment Heatmap\nBest Rho={best_rho}, Mean Absolute Error={mean_abs_error:.2f}, Median={med_abs_error:.2f}, Max={max_error}")
+    plt.title(f"F1 Constructor Rank Misalignment Heatmap\nBest Rho={best_rho:.4f}, Mean Absolute Error={mean_abs_error:.2f}, Median={med_abs_error:.2f}, Max={max_error}")
     plt.savefig(os.path.join("./heatmaps", f"model_heatmap_{datetime.now().strftime('%Y-%m-%d_%H:%M')}.png"))
     plt.show()
 
