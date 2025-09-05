@@ -20,3 +20,6 @@ __pycache__/
 # Don't push any checkpoints or models for now
 *.pth
 *.pt
+
+# Ignore the training data directory since this is for personal use
+training_data/

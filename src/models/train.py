@@ -3,9 +3,10 @@ from f1_constructors_rank_classifier import F1ConstructorsClassifier
 from f1_dataset import F1Dataset
 from rich import print
 from scipy.stats import spearmanr, kendalltau
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import mean_absolute_error, median_absolute_error, max_error
 
 import argparse
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -18,10 +19,12 @@ import torch.optim as optim
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument("--num_epochs", "-e", type=int, default=50)
 PARSER.add_argument("--learning_rate", "-lr", type=float, default=0.001)
+PARSER.add_argument("--decay_rate", "-d", type=float, default=0.95)
+PARSER.add_argument("--decay_every", "-f", type=int, default=5)
 PARSER.add_argument("--test_size", "-s", type=float, default=0.2)
-PARSER.add_argument("--use_weighted_loss_func", "-w", type=bool, default=False)
 PARSER.add_argument("--margin", "-m", type=float, default=1.0)
 PARSER.add_argument("--patience", "-p", type=int, default=15)
+PARSER.add_argument("--random-state", "-r", type=int, default=24)
 
 ARGS = PARSER.parse_args()
 
@@ -36,127 +39,32 @@ def get_device():
         print("No GPU detected - defaulting to CPU")
         return torch.device("cpu")
 
-def adjust_learning_rate(learning_rate, epoch):
-    lr = learning_rate
+def adjust_learning_rate(learning_rate, optimizer, epoch, decay_rate, decay_every):
+    lr = learning_rate * (decay_rate ** (epoch // decay_every))
 
-    if epoch > 5:
-        lr = 0.001
-    elif epoch >= 10:
-        lr = 0.0001
-    elif epoch >= 20:
-        lr = 0.00001
-
-    for param_group in optimizer.param_groups():
+    for param_group in optimizer.param_groups:
         param_group["lr"] = lr
 
-import numpy as np
-from scipy.stats import spearmanr
+    return lr
 
-def predicted_ranks_from_scores_by_season(scores, seasons):
-    """
-    Convert an array of model scores into 1-based ranks per season.
-    - scores: 1D numpy array of shape [n_test_rows], higher = better
-    - seasons: 1D array-like same length with season id (e.g. year) for each row
-    Returns: pred_ranks: 1D numpy int array (1..k) aligned with input order.
-    """
-    scores = np.asarray(scores)
-    seasons = np.asarray(seasons)
-    assert scores.shape[0] == seasons.shape[0]
-
-    pred_ranks = np.empty_like(scores, dtype=int)
-    for season in np.unique(seasons):
-        idx = np.where(seasons == season)[0]
-        # argsort descending so highest score gets rank 1
-        order_desc = np.argsort(-scores[idx])
-        ranks = np.empty_like(order_desc)
-        ranks[order_desc] = np.arange(1, len(idx) + 1)  # 1-based ranks
-        pred_ranks[idx] = ranks
-
-    return pred_ranks
-
-
-def per_season_spearman_and_top1(val_ranks, true_ranks, seasons):
-    seasons = np.asarray(seasons)
-    val_ranks = np.asarray(val_ranks)
-    true_ranks = np.asarray(true_ranks)
-
-    season_rhos = {}
-    top1_hits = 0
-    season_count = 0
-
-    for season in np.unique(seasons):
-        idx = np.where(seasons == season)[0]
-        if len(idx) < 2:
-            continue
-        pred = val_ranks[idx]
-        true = true_ranks[idx]
-
-        # Spearman's rho
-        rho, _ = spearmanr(pred, true)
-        season_rhos[season] = float(rho) if not np.isnan(rho) else None
-
-        # Top-1 check (predicted champion is rank 1)
-        pred_champion_idx = idx[np.argmin(pred)]  # index of predicted rank==1 in this season
-        true_champion_idx = idx[np.argmin(true)]
-        if pred_champion_idx == true_champion_idx:
-            top1_hits += 1
-        season_count += 1
-
-    avg_rho = np.nanmean([v for v in season_rhos.values() if v is not None]) if season_rhos else np.nan
-    top1_acc = top1_hits / season_count if season_count > 0 else np.nan
-
-    return avg_rho, season_rhos, top1_acc
-
-def rank_misalignment_heatmap(y_true, y_pred_ranks, title="Rank Misalignment Heatmap"):
-    n = len(np.unique(y_true))  # number of teams
-    print(f"n = {n}")
-    mat = np.zeros((n, n), dtype=int)
+def rank_misalignment_heatmap(final_test_df:pd.DataFrame, all_y_true, all_y_pred, mean_abs_error, med_abs_error, max_error, best_rho):
+    team_count = final_test_df.groupby("Year")["TeamId"].nunique().max()
+    heatmap = np.zeros((team_count, team_count), dtype=int)
 
     # Build misalignment matrix
-    for t, p in zip(y_true, y_pred_ranks):
-        mat[int(t)-1, int(p)-1] += 1  # shift to 0-index
-
-    # Misplacement metric
-    misplacements = np.abs(np.array(y_true) - np.array(y_pred_ranks))
-    mean_abs_error = np.mean(misplacements)
-    median_abs_error = np.median(misplacements)
-    max_error = np.max(misplacements)
+    for t, p in zip(all_y_true, all_y_pred):
+        heatmap[t-1, p-1] += 1
 
     # Plot heatmap
     plt.figure(figsize=(8, 6))
-    sns.heatmap(mat, annot=True, fmt="d", cmap="Blues", cbar=True,
-                xticklabels=[f"P{r}" for r in range(1, n+1)],
-                yticklabels=[f"P{r}" for r in range(1, n+1)])
+    sns.heatmap(heatmap, annot=True, fmt="d", cmap="Blues", cbar=True,
+                xticklabels=[f"Pred {i}" for i in range(1, team_count+1)],
+                yticklabels=[f"True {i}" for i in range(1, team_count+1)])
     plt.xlabel("Predicted Rank")
     plt.ylabel("True Rank")
-    plt.title(f"{title}\nMean Absolute Error={mean_abs_error:.2f}, Median={median_abs_error:.2f}, Max={max_error}")
+    plt.title(f"F1 Constructor Rank Misalignment Heatmap\nBest Rho={best_rho}, Mean Absolute Error={mean_abs_error:.2f}, Median={med_abs_error:.2f}, Max={max_error}")
     plt.savefig(os.path.join("./heatmaps", f"model_heatmap_{datetime.now().strftime('%Y-%m-%d_%H:%M')}.png"))
     plt.show()
-
-    return {
-        "matrix": mat,
-        "mean_absolute_error": mean_abs_error,
-        "median_absolute_error": median_abs_error,
-        "max_error": max_error
-    }
-
-def evaluate_model(model, X_test, y_test):
-    model.eval()
-    with torch.no_grad():
-        scores = model(X_test).squeeze().cpu().numpy()
-    
-    # Convert scores into predicted ranks
-    pred_order = np.argsort(-scores)  # highest score = best rank
-    true_order = np.argsort(y_test.cpu().numpy())
-    
-    # Map each team index -> predicted rank
-    pred_ranks = np.empty_like(pred_order)
-    pred_ranks[pred_order] = np.arange(len(pred_order))
-    true_ranks = np.empty_like(true_order)
-    true_ranks[true_order] = np.arange(len(true_order))
-    
-    # Confusion matrix
-    return rank_misalignment_heatmap(true_ranks, pred_ranks)
 
 if __name__ == "__main__":
     print()
@@ -164,9 +72,11 @@ if __name__ == "__main__":
     test_size = ARGS.test_size
     num_epochs = ARGS.num_epochs
     learning_rate = ARGS.learning_rate
-    use_weighted_loss_func = ARGS.use_weighted_loss_func
+    decay = ARGS.decay_rate
+    decay_every = ARGS.decay_every
     margin = ARGS.margin
     patience = ARGS.patience
+    random_state = ARGS.random_state
 
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
 
@@ -177,6 +87,19 @@ if __name__ == "__main__":
         print(f"[red]ERROR[/red]: Test size cannot be less than or equal to 0; received {test_size}")
         exit(0)
 
+    model_param_data = {
+        "Test Timestamp": [current_datetime],
+        "Number of Epochs": [num_epochs],
+        "Training Size": [(1 - test_size) * 100],
+        "Test Size": [test_size * 100],
+        "Decay Rate": [decay],
+        "Decay Every n Epochs": [decay_every],
+        "Margin": [margin],
+        "Patience": [patience],
+        "Random State": [random_state]
+    }
+    model_training_params_df = pd.DataFrame(model_param_data)
+
     print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL ***[/yellow]")
     print()
 
@@ -184,11 +107,13 @@ if __name__ == "__main__":
     print(f" > Test Size: {test_size * 100}%")
     print(f" > Number of Epochs: {num_epochs}")
     print(f" > Intial Learning Rate: {learning_rate}")
+    print(f" > Decay: {decay}")
     print(f" > Training Device: ", end="")
     device = get_device()
     print(f" > Loss Function: Margin Ranking Loss")
     print(f" > Loss Function Margin: {margin}")
     print(f" > Patience: {patience}")
+    print(f" > Random State: {random_state}")
     print()
 
     print("Data:")
@@ -196,8 +121,17 @@ if __name__ == "__main__":
     dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_data.csv"))
     print(f"[green]done[/green]")
 
+    print(f" > Retrieving feature column names...", end="")
+    feature_cols = dataset.get_feature_columns()
+    print(f"[green]done[/green]")
+
     print(f" > Splitting dataset into training and testing...", end="")
-    X_train, X_test, y_train, y_test = dataset.get_random_split(test_size=0.2, random_state=24)
+    X_train, y_train, test_df = dataset.get_random_split(test_size=test_size, random_state=random_state)
+    print(f"[green]done[/green]")
+
+    print(f" > Converting the training dataset into tensors...", end="")
+    X_train = torch.tensor(X_train.values, dtype=torch.float32).to(device)
+    y_train = torch.tensor(y_train.to_numpy(), dtype=torch.long).to(device)
     print(f"[green]done[/green]")
     print()
 
@@ -207,7 +141,7 @@ if __name__ == "__main__":
     print(f"[green]done[/green]")
 
     print(f" > Instantiating optimizer with learning rate...", end="")
-    optimizer = optim.Adam(model.parameters(),lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     print(f"[green]done[/green]")
 
     print(f" > Instantiating loss function...", end="")
@@ -216,72 +150,97 @@ if __name__ == "__main__":
     print()
 
     print("Training model...")
-    training_df = pd.DataFrame(columns=["Epoch", "Training Loss", "Spearman's Rho", "Kendall's Tau"])
+    training_df = pd.DataFrame(columns=["Epoch", "Learning Rate", "Training Loss", "Spearman's Rho", "Kendall's Tau"])
     best_rho = -1.0
     best_epoch = -1
     epochs_no_improve = 0
 
     for epoch in range(num_epochs):
         model.train()
+        learning_rate = adjust_learning_rate(learning_rate, optimizer, epoch, decay_rate=decay, decay_every=decay_every)
+
+        scores = model(X_train).to(device)
+
+        years_train = pd.DataFrame(X_train.cpu().numpy()).iloc[:, 0]
+        years_train = years_train.astype(int)
+
+        X_i_pairs, X_j_pairs, pairs_result = [], [], []
+
+        for year in np.unique(years_train):
+            idx = np.where(years_train == year)[0]
+            n_pairs = min(500, len(idx) * (len(idx) - 1))   # Sample at most 500 pairs from each year
+
+            i_idx = np.random.choice(idx, n_pairs)
+            j_idx = np.random.choice(idx, n_pairs)
+
+            X_i_pairs.extend(X_train[i_idx])
+            X_j_pairs.extend(X_train[j_idx])
+
+            pair_targets = np.where(y_train[i_idx].cpu().numpy() < y_train[j_idx].cpu().numpy(), 1.0, -1.0)
+            pairs_result.extend(pair_targets)
+
+        X_i_pairs = torch.stack(X_i_pairs).to(device)
+        X_j_pairs = torch.stack(X_j_pairs).to(device)
+        pairs_result = torch.tensor(pairs_result, dtype=torch.float32).to(device)
+
+        s_i = model(X_i_pairs)
+        s_j = model(X_j_pairs)
+
+        loss = loss_func(s_i, s_j, pairs_result)
         optimizer.zero_grad()
-
-        scores = model(X_train)
-
-        i_idx = torch.randint(0, len(y_train), (len(y_train),), device=device)
-        j_idx = torch.randint(0, len(y_train), (len(y_train),), device=device)
-
-        s_i, s_j = scores[i_idx], scores[j_idx]
-
-        target = torch.where(y_train[i_idx] < y_train[j_idx], 1, -1).float()
-
-        loss = loss_func(s_i, s_j, target)
         loss.backward()
         optimizer.step()
 
         model.eval()
         with torch.no_grad():
-            val_scores = model(X_test).cpu().numpy()
-            years_test = pd.DataFrame(X_test.to_numpy())["Year"]
-            y_true = y_test.cpu().numpy()
+            years_test = test_df["Year"].unique().tolist()
+            idx_final_rank = test_df.sort_values(["Year", "TeamId", "RoundsCompleted"]).groupby(["Year", "TeamId"])["RoundsCompleted"].idxmax()
 
-            val_rank = np.empty_like(val_scores, dtype=int)
+            final_test_df = test_df.loc[idx_final_rank].copy()
+            final_test_df.sort_values(["Year", "TeamId"])
 
-            spearman_scores = {}
-            kendall_scores = {}
+            X_test = torch.tensor(final_test_df[feature_cols].values, dtype=torch.float32, device=device)
+            final_test_df["PredictedFinalRank"] = model(X_test).detach().cpu().numpy()
+            final_test_df["PredictedFinalRank"] = final_test_df.groupby("Year")["PredictedFinalRank"].rank(method="first", ascending=False).astype(int)
 
-            for year in np.unique(years_test):
-                idx = np.where(years_test == year)[0]           # rows for that year
+            all_y_true = []
+            all_y_pred = []
+            spearman_scores_by_year = {}
+            kendall_scores_by_year = {}
 
-                true_ranks = y_true[idx]
-                pred_ranks = val_rank[idx]
+            for year, group in final_test_df.groupby("Year"):
+                true_rank = group["FinalRank"].to_numpy()
+                pred_rank = group["PredictedFinalRank"].to_numpy()
 
-                # Compute correlation
-                rho, _ = spearmanr(true_ranks, pred_ranks)
-                tau, _ = kendalltau(true_ranks, pred_ranks)
+                all_y_true.extend(true_rank)
+                all_y_pred.extend(pred_rank)
 
-                spearman_scores[year] = rho
-                kendall_scores[year] = tau
+                rho, _ = spearmanr(true_rank, pred_rank)
+                tau, _ = kendalltau(true_rank, pred_rank)
 
-                scores_year = val_scores[idx]
-                order_desc = np.argsort(-scores_year)           # sort high→low
-                ranks = np.empty_like(order_desc)
-                ranks[order_desc] = np.arange(1, len(idx) + 1)  # assign 1..k
-                val_rank[idx] = ranks
+                spearman_scores_by_year[year] = float(rho) if not np.isnan(rho) else None
+                kendall_scores_by_year[year] = float(tau) if not np.isnan(tau) else None
 
-            avg_rho, per_season_rho, top1_accuracy = per_season_spearman_and_top1(val_rank, y_true)
+            valid_rhos = [r for r in spearman_scores_by_year.values() if r is not None]
+            valid_taus = [t for t in kendall_scores_by_year.values() if t is not None]
+
+            avg_rho = float(np.mean(valid_rhos)) if valid_rhos else float("nan")
+            avg_tau = float(np.mean(valid_taus)) if valid_taus else float("nan")
 
         # Early stopping & checkpoint
-        improved = rho > best_rho + 1e-4  # tiny tolerance
+        improved = avg_rho > best_rho + 1e-4  # tiny tolerance
         if improved:
-            best_rho = rho
-            best_epoch = epoch
+            best_rho = avg_rho
+            best_epoch = epoch + 1
             epochs_no_improve = 0
             torch.save(model.state_dict(), os.path.join("./checkpoints", f"best_ranking_model_{current_datetime}.pth"))
         else:
             epochs_no_improve += 1
 
-        print(f" > Epoch {epoch+1}/{num_epochs} | Training Loss: {loss.item():.4f} | Spearman's rho: {rho:.4f} | Kendall's tau: {tau:.4f}")
-        training_df.loc[len(training_df)] = [epoch + 1, loss.item(), rho, tau]
+        print(f" > Epoch {epoch+1}/{num_epochs} | Learning Rate: {learning_rate:.6f} | Training Loss: {loss.item():.4f} | Average Spearman's rho: {avg_rho:.4f} | Average Kendall's tau: {avg_tau:.4f}")
+        print(f"   Spearman's rho by year: \n{json.dumps(spearman_scores_by_year, indent=4)}")
+        print(f"   Kendall's tau by year: \n{json.dumps(kendall_scores_by_year, indent=4)}")
+        training_df.loc[len(training_df)] = [epoch + 1, learning_rate, loss.item(), avg_rho, avg_tau]
 
         if epochs_no_improve >= patience:
             print()
@@ -290,18 +249,25 @@ if __name__ == "__main__":
 
     print()
 
-    # print("Evaluating model...")    
-    # final_heatmap_stats = evaluate_model(model, X_test, y_test)
-    # print("Matrix:")
-    # print(final_heatmap_stats["matrix"])
-    # print(f"Mean Absolute Error: {final_heatmap_stats['mean_absolute_error']}")
-    # print(f"Median Absolute Error: {final_heatmap_stats['median_absolute_error']}")
-    # print(f"Maximum Error: {final_heatmap_stats['max_error']}")
-    # print()
+    print("Evaluating model...")
+    mean_abs_error = mean_absolute_error(all_y_true, all_y_pred)
+    med_abs_error = median_absolute_error(all_y_true, all_y_pred)
+    maximum_error = max_error(all_y_true, all_y_pred)
+
+    print(f" > Mean Absolute Error: {mean_abs_error:.4f}")
+    print(f" > Median Absolute Error: {med_abs_error:.4f}")
+    print(f" > Maximum Error: {maximum_error:.4f}")
+    rank_misalignment_heatmap(final_test_df, all_y_true, all_y_pred, mean_abs_error, med_abs_error, maximum_error, best_rho)
+    print()
 
     print("Saving model and training results...", end="")
-    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
-    torch.save(model.state_dict(), 
-               os.path.join("torch_models", f"f1_constructors_ranking_model_{current_datetime}.pt"))
-    training_df.to_csv(os.path.join("./training_data", f"training_data_{current_datetime}.csv"), index=False)
+    model_file_path = os.path.join("torch_models", f"f1_constructors_ranking_model_{current_datetime}.pt")
+    torch.save(model.state_dict(), model_file_path)
+    
+    training_data_file_path = os.path.join("./training_data", f"training_data_{current_datetime}.xlsx")
+    with pd.ExcelWriter(training_data_file_path) as writer:
+        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False)
+        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False)
     print(f"[green]done[/green]", end="\n\n")
+    print(f" > Model saved to: {model_file_path}")
+    print(f" > Model training parameters and data saved to: {training_data_file_path}")
