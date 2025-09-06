@@ -5,7 +5,6 @@ from train import get_device
 
 import argparse
 import os
-import numpy as np
 import pandas as pd
 import torch
 
