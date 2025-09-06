@@ -16,19 +16,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-PARSER = argparse.ArgumentParser()
-PARSER.add_argument("--num_epochs", "-e", type=int, default=50)
-PARSER.add_argument("--learning_rate", "-lr", type=float, default=0.001)
-PARSER.add_argument("--decay_rate", "-d", type=float, default=0.95)
-PARSER.add_argument("--decay_every", "-f", type=int, default=5)
-PARSER.add_argument("--test_size", "-s", type=float, default=0.2)
-PARSER.add_argument("--margin", "-m", type=float, default=1.0)
-PARSER.add_argument("--patience", "-p", type=int, default=15)
-PARSER.add_argument("--random_state", "-r", type=int, default=24)
-PARSER.add_argument("--checkpoint", "-c", required=False, type=str, default=None)
-
-ARGS = PARSER.parse_args()
-
 def get_device():
     if torch.backends.mps.is_available():
         print(f"GPU detected - Apple [magenta]Metal Performance Shaders[/magenta]")
@@ -89,6 +76,19 @@ def rank_misalignment_heatmap(final_test_df:pd.DataFrame, all_y_true, all_y_pred
     plt.show()
 
 if __name__ == "__main__":
+    PARSER = argparse.ArgumentParser()
+    PARSER.add_argument("--num_epochs", "-e", type=int, default=50)
+    PARSER.add_argument("--learning_rate", "-lr", type=float, default=0.001)
+    PARSER.add_argument("--decay_rate", "-d", type=float, default=0.95)
+    PARSER.add_argument("--decay_every", "-f", type=int, default=5)
+    PARSER.add_argument("--test_size", "-s", type=float, default=0.2)
+    PARSER.add_argument("--margin", "-m", type=float, default=1.0)
+    PARSER.add_argument("--patience", "-p", type=int, default=15)
+    PARSER.add_argument("--random_state", "-r", type=int, default=24)
+    PARSER.add_argument("--checkpoint", "-c", required=False, type=str, default=None)
+
+    ARGS = PARSER.parse_args()
+
     print()
 
     test_size = ARGS.test_size
