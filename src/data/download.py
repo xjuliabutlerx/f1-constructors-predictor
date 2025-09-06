@@ -1,5 +1,5 @@
 from rich import print
-from paths import RAW_DATA_PATH, CACHE_PATH, DATA_PATH
+from setup_paths import RAW_DATA_PATH, CACHE_PATH, DATA_PATH
 
 import fastf1
 import fastf1.logger
