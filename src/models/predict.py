@@ -5,6 +5,7 @@ from train import get_device
 
 import argparse
 import os
+import numpy as np
 import pandas as pd
 import torch
 
@@ -90,8 +91,15 @@ if __name__ == "__main__":
         print(f"{i}. {team}")
     print()
 
+    orig_pred_df = pd.read_csv(os.path.join("../../data/clean/", "f1_clean_prediction_data.csv"))
+    last_round = orig_pred_df["Round"].max()
+    last_race_df = orig_pred_df[orig_pred_df["Round"] == last_round]
+    last_race_df = last_race_df.sort_values("TotalPoints", ascending=False)["TotalPoints"]
+    current_points = last_race_df.to_list()
+
     results_data = {
         "Current Ranks": current_ranks,
+        "Current Points": current_points,
         "Predicted Ranks": ranking_results
     }
 
