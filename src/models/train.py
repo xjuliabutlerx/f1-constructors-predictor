@@ -24,7 +24,8 @@ PARSER.add_argument("--decay_every", "-f", type=int, default=5)
 PARSER.add_argument("--test_size", "-s", type=float, default=0.2)
 PARSER.add_argument("--margin", "-m", type=float, default=1.0)
 PARSER.add_argument("--patience", "-p", type=int, default=15)
-PARSER.add_argument("--random-state", "-r", type=int, default=24)
+PARSER.add_argument("--random_state", "-r", type=int, default=24)
+PARSER.add_argument("--checkpoint", "-c", required=False, type=str, default=None)
 
 ARGS = PARSER.parse_args()
 
@@ -39,7 +40,28 @@ def get_device():
         print("No GPU detected - defaulting to CPU")
         return torch.device("cpu")
 
-def adjust_learning_rate(learning_rate, optimizer, epoch, decay_rate, decay_every):
+def load_checkpoint(model:F1ConstructorsClassifier, optimizer:optim.Adam, checkpoint_path:str, device):
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    best_epoch = -1
+    best_rho = -1.0
+
+    if "model_state_dict" not in checkpoint:
+        model.load_state_dict(checkpoint)         # For early training, I didn't save a full checkpoint dictionary
+    else:
+        model.load_state_dict(checkpoint["model_state_dict"])
+
+    if "optimizer_state_dict" in checkpoint:
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    
+    if "epoch" in checkpoint:
+        best_epoch = checkpoint["epoch"] if checkpoint["epoch"] else -1
+
+    if "best_rho" in checkpoint:
+        best_rho = checkpoint["best_rho"] if checkpoint["best_rho"] else -1.0
+
+    return model, optimizer, best_epoch, best_rho
+
+def adjust_learning_rate(learning_rate, optimizer:optim.Adam, epoch, decay_rate, decay_every):
     lr = learning_rate * (decay_rate ** (epoch // decay_every))
 
     for param_group in optimizer.param_groups:
@@ -63,7 +85,7 @@ def rank_misalignment_heatmap(final_test_df:pd.DataFrame, all_y_true, all_y_pred
     plt.xlabel("Predicted Rank")
     plt.ylabel("True Rank")
     plt.title(f"F1 Constructor Rank Misalignment Heatmap\nBest Rho={best_rho:.4f}, Mean Absolute Error={mean_abs_error:.2f}, Median={med_abs_error:.2f}, Max={max_error}")
-    plt.savefig(os.path.join("./heatmaps", f"model_heatmap_{datetime.now().strftime('%Y-%m-%d_%H:%M')}.png"))
+    plt.savefig(os.path.join("heatmaps", f"model_heatmap_{datetime.now().strftime('%Y-%m-%d_%H:%M')}.png"))
     plt.show()
 
 if __name__ == "__main__":
@@ -77,6 +99,7 @@ if __name__ == "__main__":
     margin = ARGS.margin
     patience = ARGS.patience
     random_state = ARGS.random_state
+    checkpoint_path = ARGS.checkpoint
 
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
 
@@ -114,6 +137,7 @@ if __name__ == "__main__":
     print(f" > Loss Function Margin: {margin}")
     print(f" > Patience: {patience}")
     print(f" > Random State: {random_state}")
+    print(f" > Load from Checkpoint: {True if checkpoint_path is not None else False}")
     print()
 
     print("Data:")
@@ -147,13 +171,23 @@ if __name__ == "__main__":
     print(f" > Instantiating loss function...", end="")
     loss_func = nn.MarginRankingLoss(margin=margin)
     print(f"[green]done[/green]")
-    print()
 
-    print("Training model...")
-    training_df = pd.DataFrame(columns=["Epoch", "Learning Rate", "Training Loss", "Spearman's Rho", "Kendall's Tau"])
     best_rho = -1.0
     best_epoch = -1
     epochs_no_improve = 0
+    best_checkpoint_path = ""
+
+    if checkpoint_path is not None:
+        print(f" > Loading saved checkpoint...", end="")
+        if checkpoint_path is not None and os.path.exists(checkpoint_path):
+            model, optimizer, best_epoch, best_rho = load_checkpoint(model, optimizer, checkpoint_path, device)
+            print(f"[green]done[/green]")
+        else:
+            print(f"[red]failed[/red] (moving forward with new model and weights)")
+
+    print()
+    print("Training model...")
+    training_df = pd.DataFrame(columns=["Epoch", "Learning Rate", "Training Loss", "Spearman's Rho", "Kendall's Tau"])
 
     for epoch in range(num_epochs):
         model.train()
@@ -207,10 +241,20 @@ if __name__ == "__main__":
             all_y_pred = []
             spearman_scores_by_year = {}
             kendall_scores_by_year = {}
+            predicted_rankings_by_year = {}
 
             for year, group in final_test_df.groupby("Year"):
                 true_rank = group["FinalRank"].to_numpy()
                 pred_rank = group["PredictedFinalRank"].to_numpy()
+
+                # Create a more readable result for the user to see the rankings by team name
+                pred_teams = group.sort_values("PredictedFinalRank", ascending=True)["TeamName"].to_list()
+                true_teams = group.sort_values("FinalRank", ascending=True)["TeamName"].to_list()
+                results = {
+                    "Predicted": pred_teams,
+                    "Actual": true_teams
+                }
+                predicted_rankings_by_year[year] = results
 
                 all_y_true.extend(true_rank)
                 all_y_pred.extend(pred_rank)
@@ -233,13 +277,16 @@ if __name__ == "__main__":
             best_rho = avg_rho
             best_epoch = epoch + 1
             epochs_no_improve = 0
-            torch.save(model.state_dict(), os.path.join("./checkpoints", f"best_ranking_model_{current_datetime}.pth"))
+            best_checkpoint_path = f"{current_datetime}_checkpoint_epoch_{best_epoch}_rho_{best_rho:.4f}.pth"
+            torch.save({"epoch": best_epoch, "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(), "best_rho": best_rho}, \
+                       os.path.join("checkpoints", best_checkpoint_path))
         else:
             epochs_no_improve += 1
 
         print(f" > Epoch {epoch+1}/{num_epochs} | Learning Rate: {learning_rate:.6f} | Training Loss: {loss.item():.4f} | Average Spearman's rho: {avg_rho:.4f} | Average Kendall's tau: {avg_tau:.4f}")
-        print(f"   Spearman's rho by year: \n{json.dumps(spearman_scores_by_year, indent=4)}")
-        print(f"   Kendall's tau by year: \n{json.dumps(kendall_scores_by_year, indent=4)}")
+        print(f"   Spearman's rho by Year: \n{json.dumps(spearman_scores_by_year, indent=4)}")
+        print(f"   Kendall's tau by Year: \n{json.dumps(kendall_scores_by_year, indent=4)}")
+        print(f"   Predicted vs. Actual Rankings by Year: \n{json.dumps(predicted_rankings_by_year, indent=4)}")
         training_df.loc[len(training_df)] = [epoch + 1, learning_rate, loss.item(), avg_rho, avg_tau]
 
         if epochs_no_improve >= patience:
@@ -260,14 +307,20 @@ if __name__ == "__main__":
     rank_misalignment_heatmap(final_test_df, all_y_true, all_y_pred, mean_abs_error, med_abs_error, maximum_error, best_rho)
     print()
 
+    if best_checkpoint_path != "" and os.path.exists(os.path.join("checkpoints", best_checkpoint_path)):
+        print("Loading best checkpoint...", end="")
+        best_checkpoint = torch.load(os.path.join("checkpoints", best_checkpoint_path), map_location=device)
+        model.load_state_dict(best_checkpoint["model_state_dict"])
+        print("[green]done[/green]")
+
     print("Saving model and training results...", end="")
     model_file_path = os.path.join("torch_models", f"f1_constructors_ranking_model_{current_datetime}.pt")
     torch.save(model.state_dict(), model_file_path)
     
-    training_data_file_path = os.path.join("./training_data", f"training_data_{current_datetime}.xlsx")
+    training_data_file_path = os.path.join("training_data", f"{current_datetime}_training_data.xlsx")
     with pd.ExcelWriter(training_data_file_path) as writer:
-        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False)
-        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False)
-    print(f"[green]done[/green]", end="\n\n")
-    print(f" > Model saved to: {model_file_path}")
-    print(f" > Model training parameters and data saved to: {training_data_file_path}")
+        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False, float_format="%.4f")
+        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False, float_format="%.4f")
+    print(f"[green]done[/green]")
+    print(f" > Model saved to: [magenta]{model_file_path}[/magenta]")
+    print(f" > Model training parameters and data saved to: [magenta]{training_data_file_path}[/magenta]", end="\n\n")
