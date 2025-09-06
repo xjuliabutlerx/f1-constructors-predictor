@@ -41,7 +41,7 @@ if __name__ == "__main__":
     fastf1.logger.set_log_level('ERROR')  # Set log level to ERROR to reduce verbosity
 
     # The years for which data for the full season is available
-    data_years = [2023, 2024] 
+    data_years = [2018, 2019, 2020, 2021, 2022, 2023, 2024] 
 
     # Start a timer to measure download duration
     download_start_time = time.time()
