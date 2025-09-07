@@ -234,13 +234,17 @@ def feature_engineer_all_data(years, incomplete_years=None):
             current_team_results_df["TotalPodiums"] = current_team_results_df["TotalPodiums"].cumsum()
             current_team_results_df["TotalPoints"] = current_team_results_df["TotalPoints"].cumsum()
             
-            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
-            
             # Split into full/incomplete years
             if incomplete_years and year in incomplete_years:
+                schedule = download_schedule(year)
+                total_rounds = len(get_rounds_from_schedule(schedule))
+                current_team_results_df["RoundsRemaining"] = total_rounds - current_team_results_df["RoundsCompleted"]
+
                 incomplete_training_data_df = pd.concat([incomplete_training_data_df, current_team_results_df], ignore_index=True)
             else:
                 training_data_df = pd.concat([training_data_df, current_team_results_df], ignore_index=True)
+
+            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
     
     all_seasons_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "all_seasons_data.csv"), index=False)
     training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)
