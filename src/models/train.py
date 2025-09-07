@@ -85,6 +85,7 @@ if __name__ == "__main__":
     PARSER.add_argument("--margin", "-m", type=float, default=1.0)
     PARSER.add_argument("--patience", "-p", type=int, default=15)
     PARSER.add_argument("--random_state", "-r", type=int, default=24)
+    PARSER.add_argument("--alpha", "-a", type=float, default=2.0)
     PARSER.add_argument("--checkpoint", "-c", required=False, type=str, default=None)
 
     ARGS = PARSER.parse_args()
@@ -99,6 +100,7 @@ if __name__ == "__main__":
     margin = ARGS.margin
     patience = ARGS.patience
     random_state = ARGS.random_state
+    alpha = ARGS.alpha
     checkpoint_path = ARGS.checkpoint
 
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
@@ -210,6 +212,10 @@ if __name__ == "__main__":
             X_i_pairs.extend(X_train[i_idx])
             X_j_pairs.extend(X_train[j_idx])
 
+            # Calculate weights if the teams are mid-field teams (FinalRanks 4-7)
+            is_midfield_i = ((y_train[i_idx].cpu().numpy() >= 4) & (y_train[i_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
+            is_midfield_j = ((y_train[j_idx].cpu().numpy() >= 4) & (y_train[j_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
+
             pair_targets = np.where(y_train[i_idx].cpu().numpy() < y_train[j_idx].cpu().numpy(), 1.0, -1.0)
             pairs_result.extend(pair_targets)
 
@@ -220,7 +226,13 @@ if __name__ == "__main__":
         s_i = model(X_i_pairs)
         s_j = model(X_j_pairs)
 
-        loss = loss_func(s_i, s_j, pairs_result)
+        loss_per_pair = loss_func(s_i, s_j, pairs_result)
+
+        # Add in the weight for if the teams are mid-fielders
+        weight = 1.0 + alpha * torch.max(torch.from_numpy(is_midfield_i).to(device), torch.from_numpy(is_midfield_j).to(device))
+
+        loss = (loss_per_pair * weight).mean()
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
