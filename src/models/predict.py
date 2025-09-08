@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ARGS = PARSER.parse_args()
 
     print()
-    print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL ***[/yellow]")
+    print("[yellow]*** F1 CONSTRUCTOR CLASSIFIER MODEL PREDICTOR ***[/yellow]")
     print()
 
     model_path = ARGS.model_state_path

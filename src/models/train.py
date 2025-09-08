@@ -353,8 +353,8 @@ if __name__ == "__main__":
     
     training_data_file_path = os.path.join("training_data", f"{current_datetime}_training_data.xlsx")
     with pd.ExcelWriter(training_data_file_path) as writer:
-        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False, float_format="%.4f")
-        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False, float_format="%.4f")
+        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False, float_format="%.6f")
+        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False, float_format="%.6f")
     print(f"[green]done[/green]")
     print(f" > Model saved to: [magenta]{model_file_path}[/magenta]")
     print(f" > Model training parameters and data saved to: [magenta]{training_data_file_path}[/magenta]", end="\n\n")
