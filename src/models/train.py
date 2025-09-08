@@ -206,8 +206,30 @@ if __name__ == "__main__":
             idx = np.where(years_train == year)[0]
             n_pairs = min(500, len(idx) * (len(idx) - 1))   # Sample at most 500 pairs from each year
 
-            i_idx = np.random.choice(idx, n_pairs)
-            j_idx = np.random.choice(idx, n_pairs)
+            # Get the FinalRank of the teams and find the teams who were midfield teams (ranks 4-7)
+            year_final_ranks = y_train[idx].cpu().numpy()
+            midfield_mask = (year_final_ranks >= 5) & (year_final_ranks <= 7)
+            midfield_idx = idx[midfield_mask]
+            non_midfield_idx = idx[~midfield_mask]
+
+            n_midfield_pairs = int(n_pairs * 0.6)       # We want approximately 60% of the training to be on midfield teams
+            n_other_pairs = n_pairs - n_midfield_pairs
+
+            # Sample pairs where both are midfield teams
+            if len(midfield_idx) >= 2:
+                i_mid = np.random.choice(midfield_idx, n_midfield_pairs)
+                j_mid = np.random.choice(midfield_idx, n_midfield_pairs)
+            else:
+                i_mid = np.array([], dtype=int)
+                j_mid = np.array([], dtype=int)
+
+            # Gather samples from non-midfield teams
+            i_all = np.random.choice(idx, n_other_pairs)
+            j_all = np.random.choice(idx, n_other_pairs)
+
+            # Combine
+            i_idx = np.concatenate([i_mid, i_all])
+            j_idx = np.concatenate([j_mid, j_all])
 
             X_i_pairs.extend(X_train[i_idx])
             X_j_pairs.extend(X_train[j_idx])
@@ -326,7 +348,7 @@ if __name__ == "__main__":
         print("[green]done[/green]")
 
     print("Saving model and training results...", end="")
-    model_file_path = os.path.join("torch_models", f"f1_constructors_ranking_model_{current_datetime}.pt")
+    model_file_path = os.path.join("pretrained_models", f"f1_constructors_ranking_model_{current_datetime}.pt")
     torch.save(model.state_dict(), model_file_path)
     
     training_data_file_path = os.path.join("training_data", f"{current_datetime}_training_data.xlsx")
