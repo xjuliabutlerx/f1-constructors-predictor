@@ -1,7 +1,5 @@
-from f1_constructors_rank_classifier import F1ConstructorsClassifier
-from f1_dataset import F1Dataset
 from rich import print
-from train import get_device
+from src.models.v1.train import get_device
 
 import argparse
 import os
@@ -12,6 +10,7 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument("--model_state_path", "-m", type=str, required=True, default=None)
     PARSER.add_argument("--prediction_data_path", "-d", type=str, required=True, default=None)
+    PARSER.add_argument("--version", "-v", type=int, required=False, default=1)
 
     ARGS = PARSER.parse_args()
 
@@ -20,7 +19,8 @@ if __name__ == "__main__":
     print()
 
     model_path = ARGS.model_state_path
-    pred_data_path = ARGS.prediction_data_path
+    pred_data_path = ARGS.prediction_data_path if ARGS.prediction_data_path is not None else os.path.join("../../data/clean/", "f1_clean_prediction_data.csv")
+    version = ARGS.version
 
     if model_path is None or not os.path.exists(model_path):
         print(f"[red]ERROR[/red]: You must provide a valid path for the saved model state.\n")
@@ -28,6 +28,10 @@ if __name__ == "__main__":
     
     if pred_data_path is None or not os.path.exists(pred_data_path):
         print(f"[red]ERROR[/red]: You must provide a valid path for the prediction data.\n")
+        exit(0)
+
+    if version not in [1, 2]:
+        print(f"[red]ERROR[/red]: Invalid model version {version}.\n")
         exit(0)
 
     print(f"Parameters:")
@@ -38,8 +42,24 @@ if __name__ == "__main__":
     print()
 
     print("Data:")
+    if version == 1:
+        print(f" > Loading v1 F1 Dataset...", end="")
+        from v1.f1_dataset import F1Dataset
+        print("[green]done[/green]")
+
+        print(f" > Loading v1 F1 Constructors Classifier model...", end="")
+        from v1.f1_constructors_rank_classifier import F1ConstructorsClassifier
+        print("[green]done[/green]")
+    elif version == 2:
+        print(f" > Loading v1 F1 Dataset...", end="")
+        from v2.f1_dataset import F1Dataset
+        print("[green]done[/green]")
+
+        print(f" > Loading v1 F1 Constructors Classifier model...", end="")
+        from v2.f1_constructors_rank_classifier import F1ConstructorsClassifier
+        print("[green]done[/green]")
     print(f" > Loading prediction dataset...", end="")
-    dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_prediction_data.csv"))
+    dataset = F1Dataset(pred_data_path)
     print(f"[green]done[/green]")
 
     print(f" > Retrieving feature column names...", end="")

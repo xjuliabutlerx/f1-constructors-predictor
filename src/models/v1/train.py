@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     print("Data:")
     print(f" > Loading dataset...", end="")
-    dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_data.csv"))
+    dataset = F1Dataset(os.path.join("../../../data/clean/", "f1_clean_data.csv"))
     print(f"[green]done[/green]")
 
     print(f" > Retrieving feature column names...", end="")

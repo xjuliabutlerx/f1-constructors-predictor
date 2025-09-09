@@ -125,6 +125,11 @@ if __name__ == "__main__":
             # Add the current team's results for the season to the overall training data DataFrame
             training_data_df = pd.concat([training_data_df, current_team_results_df], ignore_index=True)
     
+    # Calculate approximate rank after each round
+    training_data_df["CurrentRankAfterRound"] = training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
+    training_data_df = training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", 
+                                        "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", "FinalRank"]]
+
     # Export the cleaned all seasons data and the training data to CSV files
     all_seasons_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "all_seasons_data.csv"), index=False)
     training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)

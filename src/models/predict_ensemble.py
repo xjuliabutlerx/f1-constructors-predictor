@@ -1,13 +1,21 @@
 from datetime import datetime
-from f1_constructors_rank_classifier import F1ConstructorsClassifier
-from f1_dataset import F1Dataset
 from rich import print
-from train import get_device
 
 import argparse
 import os
 import pandas as pd
 import torch
+
+def get_device():
+    if torch.backends.mps.is_available():
+        print(f"GPU detected - Apple [magenta]Metal Performance Shaders[/magenta]")
+        return torch.device("mps")
+    elif torch.cuda.is_available():
+        print(f"GPU detected - NVIDIA [magenta]Compute Unified Device Architecture[/magenta]")
+        return torch.device("cuda", 0)
+    else:
+        print("No GPU detected - defaulting to CPU")
+        return torch.device("cpu")
 
 def predict(model_name:str, model_path:str, dataset_df:pd.DataFrame, device:torch.device):
     idx_final_rank = dataset_df.sort_values(["TeamId", "RoundsCompleted"]).groupby(["TeamId"])["RoundsCompleted"].idxmax()
@@ -16,7 +24,7 @@ def predict(model_name:str, model_path:str, dataset_df:pd.DataFrame, device:torc
 
     X_pred = torch.tensor(prediction_df[feature_cols].values, dtype=torch.float32)
 
-    print(f"Model - {model_name}")
+    print(f"Model - [magenta]{model_name}[/magenta]")
     print(f" > Instantiating model and loading state...", end="")
     model = F1ConstructorsClassifier(input_dim=X_pred.shape[1], output_dim=1).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -40,7 +48,8 @@ def predict(model_name:str, model_path:str, dataset_df:pd.DataFrame, device:torc
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument("--models_dir_path", "-m", type=str, required=True, default=None)
-    PARSER.add_argument("--prediction_data_path", "-d", type=str, required=True, default=None)
+    PARSER.add_argument("--prediction_data_path", "-d", type=str, required=False, default=None)
+    PARSER.add_argument("--version", "-v", type=int, required=False, default=1)
 
     ARGS = PARSER.parse_args()
 
@@ -49,7 +58,8 @@ if __name__ == "__main__":
     print()
 
     models_dir_path = ARGS.models_dir_path
-    pred_data_path = ARGS.prediction_data_path
+    pred_data_path = ARGS.prediction_data_path if ARGS.prediction_data_path is not None else os.path.join("../../data/clean/", "f1_clean_prediction_data.csv")
+    version = ARGS.version
     model_files_list = []
 
     if models_dir_path is None or not os.path.isdir(models_dir_path):
@@ -70,6 +80,10 @@ if __name__ == "__main__":
         print(f"[red]ERROR[/red]: You must provide a valid path for the prediction data.\n")
         exit(0)
 
+    if version not in [1, 2]:
+        print(f"[red]ERROR[/red]: Invalid model version {version}.\n")
+        exit(0)
+
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
 
     print(f"Parameters:")
@@ -82,8 +96,24 @@ if __name__ == "__main__":
     print()
 
     print("Data:")
+    if version == 1:
+        print(f" > Loading v1 F1 Dataset...", end="")
+        from v1.f1_dataset import F1Dataset
+        print("[green]done[/green]")
+
+        print(f" > Loading v1 F1 Constructors Classifier model...", end="")
+        from v1.f1_constructors_rank_classifier import F1ConstructorsClassifier
+        print("[green]done[/green]")
+    elif version == 2:
+        print(f" > Loading v1 F1 Dataset...", end="")
+        from v2.f1_dataset import F1Dataset
+        print("[green]done[/green]")
+
+        print(f" > Loading v1 F1 Constructors Classifier model...", end="")
+        from v2.f1_constructors_rank_classifier import F1ConstructorsClassifier
+        print("[green]done[/green]")
     print(f" > Loading prediction dataset...", end="")
-    dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_prediction_data.csv"))
+    dataset = F1Dataset(pred_data_path)
     print(f"[green]done[/green]")
 
     print(f" > Retrieving feature column names...", end="")
@@ -123,4 +153,4 @@ if __name__ == "__main__":
     
     results_filename = f"{current_datetime}_ensemble_predictions.xlsx"
     ensemble_results_df.to_excel(f"../../data/ensemble-predictions/{results_filename}", index=False)
-    print(f"Saved results to {results_filename}.", end="\n\n")
+    print(f"Saved results to [magenta]{results_filename}[/magenta].", end="\n\n")

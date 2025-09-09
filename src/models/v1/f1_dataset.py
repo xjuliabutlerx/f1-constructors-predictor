@@ -1,4 +1,3 @@
-from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
 import numpy as np
@@ -8,7 +7,7 @@ class F1Dataset(Dataset):
 
     def __init__(self, data_file_path):
         self.feature_columns = ["Year", "Round", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", \
-                        "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear"]
+                                "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear"]
         self.skewed_feature_columns = ["DNFRate", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear"]
 
         self.df = pd.read_csv(data_file_path)
@@ -39,4 +38,4 @@ class F1Dataset(Dataset):
     
 if __name__ == "__main__":
     import os
-    dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_data.csv"))
+    dataset = F1Dataset(os.path.join("../../../data/clean/", "f1_clean_data.csv"))
