@@ -139,7 +139,7 @@ def preprocess_all_data(years):
     print("Data preprocessing completed.")
 
 # -------------------- FEATURE ENGINEERING FUNCTIONS --------------------
-def normalize_teamids(df: pd.DataFrame):
+def normalize_teamids(df:pd.DataFrame):
     df["TeamId"] = df["TeamId"].replace("alfa", "sauber")
     df["TeamId"] = df["TeamId"].replace("renault", "alpine")
     df["TeamId"] = df["TeamId"].replace(["toro_rosso", "alphatauri"], ["rb", "rb"])
@@ -206,7 +206,10 @@ def feature_engineer_all_data(years, incomplete_years=None):
             
             for location in current_race_locations:
                 temp_df = pd.DataFrame()
+                
+                # Get the current race results for a specific team from a specific year from a specific round
                 current_race_results = all_seasons_data_df.loc[(all_seasons_data_df["TeamId"] == team_id) & (all_seasons_data_df["Year"] == year) & (all_seasons_data_df["Location"] == location)]
+                
                 temp_df["Year"] = current_race_results["Year"]
                 temp_df["TeamId"] = current_race_results["TeamId"]
                 temp_df["TeamName"] = current_race_results["TeamName"]
@@ -223,7 +226,9 @@ def feature_engineer_all_data(years, incomplete_years=None):
                 temp_df["TotalPoints"] = current_race_results["Points"].cumsum()
                 temp_df["hadPenaltyThisYear"] = 1 if team_id in current_teams_with_penalties else 0
                 temp_df["FinalRank"] = current_year_standings.loc[current_year_standings["TeamId"] == team_id, "FinalRanking"].iloc[0]
+                
                 temp_df = temp_df.dropna(how="any").reset_index(drop=True)
+                
                 current_team_results_df = pd.concat([current_team_results_df, temp_df], ignore_index=True)
             
             current_team_results_df["AvgGridPosition"] = current_team_results_df["AvgGridPosition"].expanding().mean()
@@ -234,18 +239,34 @@ def feature_engineer_all_data(years, incomplete_years=None):
             current_team_results_df["TotalPodiums"] = current_team_results_df["TotalPodiums"].cumsum()
             current_team_results_df["TotalPoints"] = current_team_results_df["TotalPoints"].cumsum()
             
-            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
-            
             # Split into full/incomplete years
             if incomplete_years and year in incomplete_years:
+                schedule = download_schedule(year)
+                total_rounds = len(get_rounds_from_schedule(schedule))
+                current_team_results_df["RoundsRemaining"] = total_rounds - current_team_results_df["RoundsCompleted"]
+
                 incomplete_training_data_df = pd.concat([incomplete_training_data_df, current_team_results_df], ignore_index=True)
             else:
                 training_data_df = pd.concat([training_data_df, current_team_results_df], ignore_index=True)
+
+            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", \
+                                           "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
     
+    # Calculate approximate rank after each round
+    training_data_df["CurrentRankAfterRound"] = training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
+    training_data_df = training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", 
+                                        "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", "FinalRank"]]
+
     all_seasons_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "all_seasons_data.csv"), index=False)
     training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)
     
     if not incomplete_training_data_df.empty:
+        # Calculate approximate rank after each round
+        incomplete_training_data_df["CurrentRankAfterRound"] = incomplete_training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
+        incomplete_training_data_df = incomplete_training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", \
+                                                                   "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", \
+                                                                    "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", "FinalRank"]]
+
         # Rename the "FinalRank" column to "CurrentRank"
         incomplete_training_data_df = incomplete_training_data_df.rename(columns={"FinalRank": "CurrentRank"})
 

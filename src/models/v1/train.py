@@ -85,6 +85,7 @@ if __name__ == "__main__":
     PARSER.add_argument("--margin", "-m", type=float, default=1.0)
     PARSER.add_argument("--patience", "-p", type=int, default=15)
     PARSER.add_argument("--random_state", "-r", type=int, default=24)
+    PARSER.add_argument("--alpha", "-a", type=float, default=2.0)
     PARSER.add_argument("--checkpoint", "-c", required=False, type=str, default=None)
 
     ARGS = PARSER.parse_args()
@@ -99,6 +100,7 @@ if __name__ == "__main__":
     margin = ARGS.margin
     patience = ARGS.patience
     random_state = ARGS.random_state
+    alpha = ARGS.alpha
     checkpoint_path = ARGS.checkpoint
 
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
@@ -142,7 +144,7 @@ if __name__ == "__main__":
 
     print("Data:")
     print(f" > Loading dataset...", end="")
-    dataset = F1Dataset(os.path.join("../../data/clean/", "f1_clean_data.csv"))
+    dataset = F1Dataset(os.path.join("../../../data/clean/", "f1_clean_data.csv"))
     print(f"[green]done[/green]")
 
     print(f" > Retrieving feature column names...", end="")
@@ -204,11 +206,37 @@ if __name__ == "__main__":
             idx = np.where(years_train == year)[0]
             n_pairs = min(500, len(idx) * (len(idx) - 1))   # Sample at most 500 pairs from each year
 
-            i_idx = np.random.choice(idx, n_pairs)
-            j_idx = np.random.choice(idx, n_pairs)
+            # Get the FinalRank of the teams and find the teams who were midfield teams (ranks 4-7)
+            year_final_ranks = y_train[idx].cpu().numpy()
+            midfield_mask = (year_final_ranks >= 5) & (year_final_ranks <= 7)
+            midfield_idx = idx[midfield_mask]
+            non_midfield_idx = idx[~midfield_mask]
+
+            n_midfield_pairs = int(n_pairs * 0.6)       # We want approximately 60% of the training to be on midfield teams
+            n_other_pairs = n_pairs - n_midfield_pairs
+
+            # Sample pairs where both are midfield teams
+            if len(midfield_idx) >= 2:
+                i_mid = np.random.choice(midfield_idx, n_midfield_pairs)
+                j_mid = np.random.choice(midfield_idx, n_midfield_pairs)
+            else:
+                i_mid = np.array([], dtype=int)
+                j_mid = np.array([], dtype=int)
+
+            # Gather samples from non-midfield teams
+            i_all = np.random.choice(idx, n_other_pairs)
+            j_all = np.random.choice(idx, n_other_pairs)
+
+            # Combine
+            i_idx = np.concatenate([i_mid, i_all])
+            j_idx = np.concatenate([j_mid, j_all])
 
             X_i_pairs.extend(X_train[i_idx])
             X_j_pairs.extend(X_train[j_idx])
+
+            # Calculate weights if the teams are mid-field teams (FinalRanks 4-7)
+            is_midfield_i = ((y_train[i_idx].cpu().numpy() >= 4) & (y_train[i_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
+            is_midfield_j = ((y_train[j_idx].cpu().numpy() >= 4) & (y_train[j_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
 
             pair_targets = np.where(y_train[i_idx].cpu().numpy() < y_train[j_idx].cpu().numpy(), 1.0, -1.0)
             pairs_result.extend(pair_targets)
@@ -220,7 +248,13 @@ if __name__ == "__main__":
         s_i = model(X_i_pairs)
         s_j = model(X_j_pairs)
 
-        loss = loss_func(s_i, s_j, pairs_result)
+        loss_per_pair = loss_func(s_i, s_j, pairs_result)
+
+        # Add in the weight for if the teams are mid-fielders
+        weight = 1.0 + alpha * torch.max(torch.from_numpy(is_midfield_i).to(device), torch.from_numpy(is_midfield_j).to(device))
+
+        loss = (loss_per_pair * weight).mean()
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -314,13 +348,13 @@ if __name__ == "__main__":
         print("[green]done[/green]")
 
     print("Saving model and training results...", end="")
-    model_file_path = os.path.join("torch_models", f"f1_constructors_ranking_model_{current_datetime}.pt")
+    model_file_path = os.path.join("pretrained_models", f"f1_constructors_ranking_model_{current_datetime}.pt")
     torch.save(model.state_dict(), model_file_path)
     
     training_data_file_path = os.path.join("training_data", f"{current_datetime}_training_data.xlsx")
     with pd.ExcelWriter(training_data_file_path) as writer:
-        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False, float_format="%.4f")
-        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False, float_format="%.4f")
+        model_training_params_df.to_excel(writer, sheet_name="Model Training Parameters", index=False, float_format="%.6f")
+        training_df.to_excel(writer, sheet_name="Model Training by Epoch", index=False, float_format="%.6f")
     print(f"[green]done[/green]")
     print(f" > Model saved to: [magenta]{model_file_path}[/magenta]")
     print(f" > Model training parameters and data saved to: [magenta]{training_data_file_path}[/magenta]", end="\n\n")

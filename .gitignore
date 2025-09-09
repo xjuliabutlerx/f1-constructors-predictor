@@ -23,6 +23,7 @@ __pycache__/
 
 # Ignore the training data directory since this is for personal use
 training_data/
+training_data_v2/
 
 # Ignore the notes directory since this is for personal use
 notes/
