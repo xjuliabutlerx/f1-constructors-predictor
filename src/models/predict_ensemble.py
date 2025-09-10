@@ -143,6 +143,7 @@ if __name__ == "__main__":
     for model_file in model_files_list:
         model_name = model_file[:-3].replace("_", " ")
         model_name = model_name.title()
+        model_name = model_name.replace(f"V{version}", f"v{version}")       # make the "v" for version lowercase
 
         prediction = predict(model_name, os.path.join(models_dir_path, model_file), dataset.df, device)
 
@@ -151,6 +152,6 @@ if __name__ == "__main__":
     print(f"Predicted Results for the {year} F1 Constructor's Championship:")
     print(ensemble_results_df.head(len(teams)), end="\n\n")
     
-    results_filename = f"{current_datetime}_ensemble_predictions.xlsx"
+    results_filename = f"{current_datetime}_v{version}_ensemble_predictions.xlsx"
     ensemble_results_df.to_excel(f"../../data/ensemble-predictions/{results_filename}", index=False)
     print(f"Saved results to [magenta]{results_filename}[/magenta].", end="\n\n")
