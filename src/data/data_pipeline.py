@@ -139,6 +139,21 @@ def preprocess_all_data(years):
     print("Data preprocessing completed.")
 
 # -------------------- FEATURE ENGINEERING FUNCTIONS --------------------
+def calculate_ranks_after_rounds(training_data_df:pd.DataFrame):
+    # Calculate each team's rank after the given round
+    training_data_df["CurrentRankAfterRound"] = training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
+    
+    # Calculate the percentile of each team's rank after the given round (to provide an idea of where the team stands among the other teams)
+    training_data_df["PercentileRankAfterRound"] = 1.0 - (training_data_df["CurrentRankAfterRound"] - 1) / (training_data_df.groupby(["Year","Round"])["TeamId"].transform('nunique') - 1)
+
+    training_data_df = training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", \
+                                         "PointsEarnedThisRound", "DNFsThisRound", "PointsLast3Rounds", "DNFsLast3Rounds", "DNFRate", \
+                                         "AvgGridPosition", "AvgPosition", "AvgPointsPerRace", "TotalPointFinishes", \
+                                         "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", \
+                                         "PercentileRankAfterRound", "FinalRank"]]
+    
+    return training_data_df
+
 def normalize_teamids(df:pd.DataFrame):
     df["TeamId"] = df["TeamId"].replace("alfa", "sauber")
     df["TeamId"] = df["TeamId"].replace("renault", "alpine")
@@ -210,6 +225,7 @@ def feature_engineer_all_data(years, incomplete_years=None):
                 # Get the current race results for a specific team from a specific year from a specific round
                 current_race_results = all_seasons_data_df.loc[(all_seasons_data_df["TeamId"] == team_id) & (all_seasons_data_df["Year"] == year) & (all_seasons_data_df["Location"] == location)]
                 
+                # Raw statistics
                 temp_df["Year"] = current_race_results["Year"]
                 temp_df["TeamId"] = current_race_results["TeamId"]
                 temp_df["TeamName"] = current_race_results["TeamName"]
@@ -217,6 +233,10 @@ def feature_engineer_all_data(years, incomplete_years=None):
                 temp_df["Round"] = current_race_results["Round"]
                 temp_df["RoundsCompleted"] = current_race_results["Round"] - 1
                 temp_df["RoundsRemaining"] = len(current_race_locations) - current_race_results["Round"]
+                temp_df["DNFsThisRound"] = current_race_results["isDNF"].sum()
+                temp_df["PointsEarnedThisRound"] = current_race_results["Points"].sum()
+
+                # Statistics that will be re-calculated over the course of the season
                 temp_df["AvgGridPosition"] = current_race_results["GridPosition"].expanding().mean().tail(1)
                 temp_df["AvgPosition"] = current_race_results["Position"].expanding().mean().tail(1)
                 temp_df["DNFRate"] = current_race_results["isDNF"].expanding().mean().tail(1)
@@ -230,6 +250,11 @@ def feature_engineer_all_data(years, incomplete_years=None):
                 temp_df = temp_df.dropna(how="any").reset_index(drop=True)
                 
                 current_team_results_df = pd.concat([current_team_results_df, temp_df], ignore_index=True)
+            
+            current_team_results_df["PointsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
+                                                                                .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
+            current_team_results_df["DNFsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["DNFsThisRound"] \
+                                                                                .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
             
             current_team_results_df["AvgGridPosition"] = current_team_results_df["AvgGridPosition"].expanding().mean()
             current_team_results_df["AvgPosition"] = current_team_results_df["AvgPosition"].expanding().mean()
@@ -249,31 +274,32 @@ def feature_engineer_all_data(years, incomplete_years=None):
             else:
                 training_data_df = pd.concat([training_data_df, current_team_results_df], ignore_index=True)
 
-            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", \
-                                           "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
-    
-    # Calculate approximate rank after each round
-    training_data_df["CurrentRankAfterRound"] = training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
-    training_data_df = training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", "AvgGridPosition", "AvgPosition", 
-                                        "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", "FinalRank"]]
+            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "PointsEarnedThisRound", "DNFsThisRound", \
+                                           "PointsLast3Rounds", "DNFsLast3Rounds", "DNFRate", "AvgGridPosition", "AvgPosition", \
+                                           "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", \
+                                           "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
 
-    all_seasons_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "all_seasons_data.csv"), index=False)
-    training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)
+    if not training_data_df.empty:
+        # Calculate approximate rank and percentile of rank after each round
+        training_data_df = calculate_ranks_after_rounds(training_data_df)
+
+        training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)
+        print(f"Saved full seasons to [magenta]f1_clean_data.csv[/magenta]")
     
     if not incomplete_training_data_df.empty:
-        # Calculate approximate rank after each round
-        incomplete_training_data_df["CurrentRankAfterRound"] = incomplete_training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
-        incomplete_training_data_df = incomplete_training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", \
-                                                                   "AvgGridPosition", "AvgPosition", "DNFRate", "AvgPointsPerRace", "TotalPointFinishes", \
-                                                                    "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", "FinalRank"]]
+        # Calculate approximate rank and percentile of rank after each round
+        incomplete_training_data_df = calculate_ranks_after_rounds(incomplete_training_data_df)
 
         # Rename the "FinalRank" column to "CurrentRank"
         incomplete_training_data_df = incomplete_training_data_df.rename(columns={"FinalRank": "CurrentRank"})
 
         incomplete_training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_prediction_data.csv"), index=False)
-        print("Saved incomplete years to f1_clean_prediction_data.csv")
+        print(f"Saved incomplete seasons to [magenta]f1_clean_prediction_data.csv[/magenta]")
     
-    print("Data cleaning and feature engineering completed.\n")
+    all_seasons_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "all_seasons_data.csv"), index=False)
+    print(f"Saved all seasons data to [magenta]all_seasons_data.csv[/magenta]", end="\n\n")
+
+    print("Data cleaning and feature engineering completed.", end="\n\n")
 
 # -------------------- MAIN PIPELINE --------------------
 def main():
