@@ -50,6 +50,7 @@ if __name__ == "__main__":
     PARSER.add_argument("--models_dir_path", "-m", type=str, required=True, default=None)
     PARSER.add_argument("--prediction_data_path", "-d", type=str, required=False, default=None)
     PARSER.add_argument("--version", "-v", type=int, required=False, default=1)
+    PARSER.add_argument("--excel", "-x", action="store_true", required=False)
 
     ARGS = PARSER.parse_args()
 
@@ -60,6 +61,7 @@ if __name__ == "__main__":
     models_dir_path = ARGS.models_dir_path
     pred_data_path = ARGS.prediction_data_path if ARGS.prediction_data_path is not None else os.path.join("../../data/clean/", "f1_clean_prediction_data.csv")
     version = ARGS.version
+    save_as_excel = ARGS.excel
     model_files_list = []
 
     if models_dir_path is None or not os.path.isdir(models_dir_path):
@@ -105,11 +107,11 @@ if __name__ == "__main__":
         from v1.f1_constructors_rank_classifier import F1ConstructorsClassifier
         print("[green]done[/green]")
     elif version == 2:
-        print(f" > Loading v1 F1 Dataset...", end="")
+        print(f" > Loading v2 F1 Dataset...", end="")
         from v2.f1_dataset import F1Dataset
         print("[green]done[/green]")
 
-        print(f" > Loading v1 F1 Constructors Classifier model...", end="")
+        print(f" > Loading v2 F1 Constructors Classifier model...", end="")
         from v2.f1_constructors_rank_classifier import F1ConstructorsClassifier
         print("[green]done[/green]")
     print(f" > Loading prediction dataset...", end="")
@@ -152,6 +154,11 @@ if __name__ == "__main__":
     print(f"Predicted Results for the {year} F1 Constructor's Championship:")
     print(ensemble_results_df.head(len(teams)), end="\n\n")
     
-    results_filename = f"{current_datetime}_v{version}_ensemble_predictions.xlsx"
-    ensemble_results_df.to_excel(f"../../data/ensemble-predictions/{results_filename}", index=False)
+    results_filename = f"{current_datetime}_v{version}_ensemble_predictions"
+    if save_as_excel:
+        results_filename += ".xlsx"
+        ensemble_results_df.to_excel(f"../../data/ensemble-predictions/{results_filename}", index=False)
+    else:
+        results_filename += ".csv"
+        ensemble_results_df.to_csv(f"../../data/ensemble-predictions/{results_filename}", index=False)
     print(f"Saved results to [magenta]{results_filename}[/magenta].", end="\n\n")

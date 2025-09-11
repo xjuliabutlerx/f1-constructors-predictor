@@ -9,9 +9,11 @@ CHECKPOINTS_PATH = "checkpoints"          # Path to saved checkpoints
 HEATMAPS_PATH = "heatmaps"                # Path to the heatmap visuals
 MODELS_PATH = "pretrained_models"         # Path to the saved models
 TRAINING_DATA_PATH = "training_data"      # Path to the training data excels
+ANALYSIS_RESULTS_PATH = "shap_analysis"   # Path to a directory of SHAP analysis images
 
 if __name__ == "__main__":
     print()
+    root_dirs = [ANALYSIS_RESULTS_PATH]
     base_dirs = [V1, V2]
     sub_dirs = [CHECKPOINTS_PATH, HEATMAPS_PATH, MODELS_PATH, TRAINING_DATA_PATH]
 
@@ -25,4 +27,12 @@ if __name__ == "__main__":
             else:
                 print(f"[cyan]{new_dir_path}[/cyan] already exists!")
         
+    for dir in root_dirs:
+        if not os.path.exists(dir):
+            print(f"[cyan]{dir}[/cyan] does not exist, creating now...", end="")
+            os.mkdir(dir)
+            print("[green]done[/green]!")
+        else:
+            print(f"[cyan]{dir}[/cyan] already exists!")
+
     print()
