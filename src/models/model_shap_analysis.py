@@ -18,7 +18,7 @@ def callable_model(model, x:np.ndarray):
         ranks[order] = np.arange(1, len(scores) + 1)
         return ranks
 
-def run_shap_analysis(model_name:str, model_path:str, dataset_df:pd.DataFrame, feature_cols:list, device:torch.device, sample_size:int=50):
+def run_shap_analysis(model_name:str, model_path:str, dataset_df:pd.DataFrame, feature_cols:list, device:torch.device, sample_size:int=50, analysis_dir:str="shap_analysis"):
     X_values = torch.tensor(dataset_df[feature_cols].values, dtype=torch.float32).to(device)
     X_numpy = dataset_df[feature_cols].values.astype(np.float32)
 
@@ -34,12 +34,12 @@ def run_shap_analysis(model_name:str, model_path:str, dataset_df:pd.DataFrame, f
 
     plt.title(f"SHAP Summary for {model_name}")
     shap.summary_plot(shap_values, X_values, feature_names=feature_cols, show=False, max_display=len(feature_cols), rng=rng)
-    plt.savefig(os.path.join("shap_analysis", f"shap_summary_{model_name}.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(analysis_dir, f"shap_summary_{model_name}.png"), bbox_inches="tight")
     plt.close()
 
     plt.title(f"SHAP Bar Plot for {model_name}")
     shap.summary_plot(shap_values, X_values, feature_names=feature_cols, plot_type="bar", show=False, max_display=len(feature_cols), rng=rng)
-    plt.savefig(os.path.join("shap_analysis", f"shap_bar_{model_name}.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(analysis_dir, f"shap_bar_{model_name}.png"), bbox_inches="tight")
     plt.close()
 
 if __name__ == "__main__":
@@ -48,6 +48,7 @@ if __name__ == "__main__":
     PARSER.add_argument("--training_data_path", "-d", type=str, required=False, default=None)
     PARSER.add_argument("--version", "-v", type=int, required=False, default=1)
     PARSER.add_argument("--sample_size", "-s", type=int, default=50)
+    PARSER.add_argument("--analysis_path", "-a", type=str, default="shap_analysis", help="Directory to save SHAP analysis results")
 
     ARGS = PARSER.parse_args()
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
     training_data_path = ARGS.training_data_path if ARGS.training_data_path is not None else os.path.join("../../data/clean/", "f1_clean_data.csv")
     version = ARGS.version
     sample_size = ARGS.sample_size
+    analysis_path = ARGS.analysis_path
 
     if models_dir_path is None or not os.path.isdir(models_dir_path):
         print(f"[red]ERROR[/red]: You must provide a valid directory path for the pretrained models.\n")
@@ -119,8 +121,12 @@ if __name__ == "__main__":
     print()
 
     # Make a directory to save the model analysis diagrams if it doesn't already exist
-    if not os.path.exists("shap_analysis"):
-        os.mkdir("shap_analysis")
+    if not os.path.exists(analysis_path):
+        os.mkdir(analysis_path)
+
+    analysis_sub_folder = os.path.join(analysis_path), f"v{version}"
+    if not os.path.exists(analysis_sub_folder):
+        os.mkdir(analysis_sub_folder)
 
     print("Analysis:")
     for model_file in model_files_list:
@@ -129,5 +135,5 @@ if __name__ == "__main__":
         model_name = model_name.replace(f"V{version}", f"v{version}")       # make the "v" for version lowercase
 
         print(f" > Analyzing [magenta]{model_name}[/magenta]...", end="")
-        run_shap_analysis(model_name, os.path.join(models_dir_path, model_file), dataset.df, feature_cols, device)
+        run_shap_analysis(model_name, os.path.join(models_dir_path, model_file), dataset.df, feature_cols, device, analysis_dir=analysis_sub_folder)
         print(f"[green]done[/green]")

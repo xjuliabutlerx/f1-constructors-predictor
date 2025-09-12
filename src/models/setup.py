@@ -27,12 +27,21 @@ if __name__ == "__main__":
             else:
                 print(f"[cyan]{new_dir_path}[/cyan] already exists!")
         
-    for dir in root_dirs:
-        if not os.path.exists(dir):
-            print(f"[cyan]{dir}[/cyan] does not exist, creating now...", end="")
-            os.mkdir(dir)
+    for root in root_dirs:
+        if not os.path.exists(root):
+            print(f"[cyan]{root}[/cyan] does not exist, creating now...", end="")
+            os.mkdir(root)
             print("[green]done[/green]!")
         else:
-            print(f"[cyan]{dir}[/cyan] already exists!")
+            print(f"[cyan]{root}[/cyan] already exists!")
+
+        for base in base_dirs:
+            new_dir_path = os.path.join(root, base)
+            if not os.path.exists(new_dir_path):
+                print(f"[cyan]{new_dir_path}[/cyan] does not exist, creating now...", end="")
+                os.mkdir(new_dir_path)
+                print("[green]done[/green]!")
+            else:
+                print(f"[cyan]{new_dir_path}[/cyan] already exists!")
 
     print()
