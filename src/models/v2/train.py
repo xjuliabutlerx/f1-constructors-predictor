@@ -86,7 +86,8 @@ if __name__ == "__main__":
     PARSER.add_argument("--patience", "-p", type=int, default=15)
     PARSER.add_argument("--random_state", "-r", type=int, default=24)
     PARSER.add_argument("--alpha", "-a", type=float, default=2.0)
-    PARSER.add_argument("--checkpoint", "-c", required=False, type=str, default=None)
+    PARSER.add_argument("--round_window", "-w", type=int, default=0)
+    PARSER.add_argument("--checkpoint", "-c", type=str, default=None)
 
     ARGS = PARSER.parse_args()
 
@@ -101,6 +102,7 @@ if __name__ == "__main__":
     patience = ARGS.patience
     random_state = ARGS.random_state
     alpha = ARGS.alpha
+    round_window = ARGS.round_window
     checkpoint_path = ARGS.checkpoint
 
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
@@ -116,20 +118,25 @@ if __name__ == "__main__":
         "Test Timestamp": [current_datetime],
         "Number of Epochs": [num_epochs],
         "Training Size": [(1 - test_size) * 100],
+        "Round Window": [round_window],
         "Test Size": [test_size * 100],
         "Decay Rate": [decay],
         "Decay Every n Epochs": [decay_every],
         "Margin": [margin],
+        "Alpha": [alpha],
         "Patience": [patience],
         "Random State": [random_state]
     }
-    model_training_params_df = pd.DataFrame(model_param_data)
 
     print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL ***[/yellow]")
     print()
 
     print("Training Parameters:")
     print(f" > Test Size: {test_size * 100}%")
+    if round_window == 0:
+        print(f"   - Will only compare pairs of samples from within the same round")
+    else:
+        print(f"   - Will only compare pairs of samples from within +/-{round_window} rounds of each other")
     print(f" > Number of Epochs: {num_epochs}")
     print(f" > Intial Learning Rate: {learning_rate}")
     print(f" > Decay: {decay}")
@@ -149,6 +156,8 @@ if __name__ == "__main__":
 
     print(f" > Retrieving feature column names...", end="")
     feature_cols = dataset.get_feature_columns()
+    model_param_data["Data Features"] = [feature_cols]
+    model_training_params_df = pd.DataFrame(model_param_data)
     print(f"[green]done[/green]")
 
     print(f" > Splitting dataset into training and testing...", end="")
@@ -171,7 +180,9 @@ if __name__ == "__main__":
     print(f"[green]done[/green]")
 
     print(f" > Instantiating loss function...", end="")
-    loss_func = nn.MarginRankingLoss(margin=margin)
+    # Adding reduction="none" to ensure the weights I'm calculating for mid-field teams are used to generate a single loss per pair (s_i and s_j)
+    # Default loss function would calculate an average loss across the pair; Pytorch controls how loss is calculated
+    loss_func = nn.MarginRankingLoss(margin=margin, reduction="none")
     print(f"[green]done[/green]")
 
     best_rho = -1.0
@@ -200,60 +211,65 @@ if __name__ == "__main__":
         years_train = pd.DataFrame(X_train.cpu().numpy()).iloc[:, 0]
         years_train = years_train.astype(int)
 
-        X_i_pairs, X_j_pairs, pairs_result = [], [], []
+        X_i_pairs, X_j_pairs, pairs_result, pair_weights = [], [], [], []
 
         for year in np.unique(years_train):
-            idx = np.where(years_train == year)[0]
-            n_pairs = min(500, len(idx) * (len(idx) - 1))   # Sample at most 500 pairs from each year
+            year_mask = (years_train == year)
+            year_rounds = dataset.get_total_rounds_for_year(year)
 
-            # Get the FinalRank of the teams and find the teams who were midfield teams (ranks 4-7)
-            year_final_ranks = y_train[idx].cpu().numpy()
-            midfield_mask = (year_final_ranks >= 5) & (year_final_ranks <= 7)
-            midfield_idx = idx[midfield_mask]
-            non_midfield_idx = idx[~midfield_mask]
+            for round in range(1, year_rounds + 1):
+                round_mask = year_mask & (np.abs(year_rounds - round) <= round_window)
+                idx = np.where(round_mask)[0]
 
-            n_midfield_pairs = int(n_pairs * 0.6)       # We want approximately 60% of the training to be on midfield teams
-            n_other_pairs = n_pairs - n_midfield_pairs
+                n_pairs = min(200, len(idx) * (len(idx) - 1))   # Sample at most 200 pairs from each round
 
-            # Sample pairs where both are midfield teams
-            if len(midfield_idx) >= 2:
-                i_mid = np.random.choice(midfield_idx, n_midfield_pairs)
-                j_mid = np.random.choice(midfield_idx, n_midfield_pairs)
-            else:
-                i_mid = np.array([], dtype=int)
-                j_mid = np.array([], dtype=int)
+                # Get the FinalRank of the teams and find the teams who were midfield teams (ranks 4-7)
+                year_final_ranks = y_train[idx].cpu().numpy()
+                midfield_mask = (year_final_ranks >= 5) & (year_final_ranks <= 7)
+                midfield_idx = idx[midfield_mask]
+                non_midfield_idx = idx[~midfield_mask]
 
-            # Gather samples from non-midfield teams
-            i_all = np.random.choice(idx, n_other_pairs)
-            j_all = np.random.choice(idx, n_other_pairs)
+                n_midfield_pairs = int(n_pairs * 0.6)       # We want approximately 60% of the training to be on midfield teams
+                n_other_pairs = n_pairs - n_midfield_pairs
 
-            # Combine
-            i_idx = np.concatenate([i_mid, i_all])
-            j_idx = np.concatenate([j_mid, j_all])
+                # Sample pairs where both are midfield teams
+                if len(midfield_idx) >= 2:
+                    i_mid = np.random.choice(midfield_idx, n_midfield_pairs)
+                    j_mid = np.random.choice(midfield_idx, n_midfield_pairs)
+                else:
+                    i_mid = np.array([], dtype=int)
+                    j_mid = np.array([], dtype=int)
 
-            X_i_pairs.extend(X_train[i_idx])
-            X_j_pairs.extend(X_train[j_idx])
+                # Gather samples from non-midfield teams
+                i_all = np.random.choice(idx, n_other_pairs)
+                j_all = np.random.choice(idx, n_other_pairs)
 
-            # Calculate weights if the teams are mid-field teams (FinalRanks 4-7)
-            is_midfield_i = ((y_train[i_idx].cpu().numpy() >= 4) & (y_train[i_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
-            is_midfield_j = ((y_train[j_idx].cpu().numpy() >= 4) & (y_train[j_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
+                # Combine
+                i_idx = np.concatenate([i_mid, i_all])
+                j_idx = np.concatenate([j_mid, j_all])
 
-            pair_targets = np.where(y_train[i_idx].cpu().numpy() < y_train[j_idx].cpu().numpy(), 1.0, -1.0)
-            pairs_result.extend(pair_targets)
+                X_i_pairs.extend(X_train[i_idx])
+                X_j_pairs.extend(X_train[j_idx])
+
+                # Calculate weights if the teams are mid-field teams (FinalRanks 4-7)
+                is_midfield_i = ((y_train[i_idx].cpu().numpy() >= 4) & (y_train[i_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
+                is_midfield_j = ((y_train[j_idx].cpu().numpy() >= 4) & (y_train[j_idx].cpu().numpy() <= 7)).astype(dtype=np.float32)
+                pair_w = 1.0 + alpha * np.maximum(is_midfield_i, is_midfield_j)
+                pair_weights.extend(pair_w)
+
+                pair_targets = np.where(y_train[i_idx].cpu().numpy() < y_train[j_idx].cpu().numpy(), 1.0, -1.0)
+                pairs_result.extend(pair_targets)
 
         X_i_pairs = torch.stack(X_i_pairs).to(device)
         X_j_pairs = torch.stack(X_j_pairs).to(device)
         pairs_result = torch.tensor(pairs_result, dtype=torch.float32).to(device)
+        pair_weights = torch.tensor(pair_weights, dtype=torch.float32).to(device)
 
         s_i = model(X_i_pairs)
         s_j = model(X_j_pairs)
 
         loss_per_pair = loss_func(s_i, s_j, pairs_result)
-
-        # Add in the weight for if the teams are mid-fielders
-        weight = 1.0 + alpha * torch.max(torch.from_numpy(is_midfield_i).to(device), torch.from_numpy(is_midfield_j).to(device))
-
-        loss = (loss_per_pair * weight).mean()
+        loss = (loss_per_pair * pair_weights).mean()
 
         optimizer.zero_grad()
         loss.backward()
