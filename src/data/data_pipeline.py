@@ -147,7 +147,7 @@ def preprocess_all_data(years):
 # -------------------- FEATURE ENGINEERING FUNCTIONS --------------------
 def calculate_season_long_stats(training_data_df:pd.DataFrame):
     # Calculate the share of points each race had on a team's total points for the season across all teams
-    training_data_df["RelativePointsShare"] = training_data_df["TotalPoints"] / training_data_df.groupby(["Year", "Round"])["TotalPoints"].transform("max")
+    training_data_df["RelativePointsShare"] = training_data_df["TotalPoints"] / training_data_df.groupby(["Year", "Round"])["TotalPoints"].transform("sum")
 
     # Calculate each team's rank after the given round
     training_data_df["CurrentRankAfterRound"] = training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
@@ -160,7 +160,7 @@ def calculate_season_long_stats(training_data_df:pd.DataFrame):
                                          "DNFsThisRound", "PointsLast3Rounds", "DNFsLast3Rounds", "DNFRate", \
                                          "AvgGridPosition", "AvgPosition", "AvgPointsPerRace", "TotalPointFinishes", \
                                          "FormRatio", "Consistency", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", \
-                                         "ProjectedTotalPointsAfterRound", "ProjectedGrowth", "RelativePointsShare", \
+                                         "ProjectedGrowth", "ProjectedSeasonTotalPoints", "RelativePointsShare", \
                                          "CurrentRankAfterRound", "PercentileRankAfterRound", "FinalRank"]]
     
     return training_data_df
@@ -281,13 +281,18 @@ def feature_engineer_all_data(years, incomplete_years=None):
                                                                                 .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
             current_team_results_df["DNFsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["DNFsThisRound"] \
                                                                                 .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
-            current_team_results_df["FormRatio"] = current_team_results_df["PointsLast3Rounds"] / (current_team_results_df["AvgPointsPerRace"] + 1e-6)
-            current_team_results_df["Consistency"] = current_team_results_df["PointsLast3Rounds"].std()
+            
+            current_team_results_df["FormRatio"] = current_team_results_df["PointsLast3Rounds"] / (current_team_results_df["AvgPointsPerRace"] * 3 + 1e-6)
+            
+            rolling_mean_last_5_rounds = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
+                                                .rolling(window=5, min_periods=1).mean().reset_index(level=[0, 1], drop=True)
+            rolling_std_last_5_rounds = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
+                                                .rolling(window=5, min_periods=1).std().fillna(0).reset_index(level=[0, 1], drop=True)
+            current_team_results_df["Consistency"] = 1 / (1 + (rolling_std_last_5_rounds / (rolling_mean_last_5_rounds + 1e-6)))        # Rescaling with a sigmoid to ensure values between 0 and 1
 
             # Projected growth statistics
-            current_team_results_df["ProjectedTotalPointsAfterRound"] = (current_team_results_df["TotalPoints"] / current_team_results_df["RoundsCompleted"].clip(lower=1)) * \
-                                                                   (current_team_results_df["RoundsCompleted"] + current_team_results_df["RoundsRemaining"])
-            current_team_results_df["ProjectedGrowth"] = current_team_results_df["ProjectedTotalPointsAfterRound"] - current_team_results_df["TotalPoints"]
+            current_team_results_df["ProjectedGrowth"] = rolling_mean_last_5_rounds * current_team_results_df["RoundsRemaining"]
+            current_team_results_df["ProjectedSeasonTotalPoints"] = current_team_results_df["TotalPoints"] + current_team_results_df["ProjectedGrowth"]
             
             # Split into full/incomplete years
             if incomplete_years and year in incomplete_years:
