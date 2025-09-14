@@ -1,5 +1,5 @@
 from rich import print
-from src.models.v1.train import get_device
+from predict_ensemble import get_device
 
 import argparse
 import os
@@ -30,7 +30,7 @@ if __name__ == "__main__":
         print(f"[red]ERROR[/red]: You must provide a valid path for the prediction data.\n")
         exit(0)
 
-    if version not in [1, 2]:
+    if version not in [1, 2, 3]:
         print(f"[red]ERROR[/red]: Invalid model version {version}.\n")
         exit(0)
 
@@ -51,12 +51,20 @@ if __name__ == "__main__":
         from v1.f1_constructors_rank_classifier import F1ConstructorsClassifier
         print("[green]done[/green]")
     elif version == 2:
-        print(f" > Loading v1 F1 Dataset...", end="")
+        print(f" > Loading v2 F1 Dataset...", end="")
         from v2.f1_dataset import F1Dataset
         print("[green]done[/green]")
 
-        print(f" > Loading v1 F1 Constructors Classifier model...", end="")
+        print(f" > Loading v2 F1 Constructors Classifier model...", end="")
         from v2.f1_constructors_rank_classifier import F1ConstructorsClassifier
+        print("[green]done[/green]")
+    elif version == 3:
+        print(f" > Loading v3 F1 Dataset...", end="")
+        from v3.f1_dataset import F1Dataset
+        print("[green]done[/green]")
+
+        print(f" > Loading v3 F1 Constructors Classifier model...", end="")
+        from v3.f1_constructors_rank_classifier import F1ConstructorsClassifier
         print("[green]done[/green]")
     print(f" > Loading prediction dataset...", end="")
     dataset = F1Dataset(pred_data_path)

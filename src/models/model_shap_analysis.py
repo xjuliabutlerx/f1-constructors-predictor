@@ -80,12 +80,12 @@ if __name__ == "__main__":
         print(f"[red]ERROR[/red]: You must provide a valid path for the prediction data.\n")
         exit(0)
 
-    if version not in [1, 2]:
+    if version not in [1, 2, 3]:
         print(f"[red]ERROR[/red]: Invalid model version {version}.\n")
         exit(0)
 
     print(f"Parameters:")
-    print(f" > Model State Path: {models_dir_path}")
+    print(f" > Models Directory Path: {models_dir_path}")
     for model_file in model_files_list:
         print(f"   - {model_file}")
     print(f" > Prediction Data Path: {training_data_path}")
@@ -110,7 +110,15 @@ if __name__ == "__main__":
         print(f" > Loading v2 F1 Constructors Classifier model...", end="")
         from v2.f1_constructors_rank_classifier import F1ConstructorsClassifier
         print("[green]done[/green]")
-    
+    elif version == 3:
+        print(f" > Loading v3 F1 Dataset...", end="")
+        from v3.f1_dataset import F1Dataset
+        print("[green]done[/green]")
+
+        print(f" > Loading v3 F1 Constructors Classifier model...", end="")
+        from v3.f1_constructors_rank_classifier import F1ConstructorsClassifier
+        print("[green]done[/green]")
+
     print(f" > Loading dataset...", end="")
     dataset = F1Dataset(training_data_path)
     print(f"[green]done[/green]")
@@ -124,7 +132,7 @@ if __name__ == "__main__":
     if not os.path.exists(analysis_path):
         os.mkdir(analysis_path)
 
-    analysis_sub_folder = os.path.join(analysis_path), f"v{version}"
+    analysis_sub_folder = os.path.join(analysis_path, f"v{version}")
     if not os.path.exists(analysis_sub_folder):
         os.mkdir(analysis_sub_folder)
 

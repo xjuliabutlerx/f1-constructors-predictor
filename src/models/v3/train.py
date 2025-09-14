@@ -128,7 +128,7 @@ if __name__ == "__main__":
         "Random State": [random_state]
     }
 
-    print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL v2 ***[/yellow]")
+    print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL v3 ***[/yellow]")
     print()
 
     print("Training Parameters:")
