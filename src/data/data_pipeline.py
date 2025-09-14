@@ -94,14 +94,20 @@ def combine_data_files_for_year(file_list: list):
     for file in file_list:
         file_path = os.path.join(RAW_DATA_PATH, file)
         file_df = pd.read_csv(file_path)
+        
         file_year = file.split('_')[0]
         file_df.insert(loc=0, column='Year', value=file_year)
+        
         gp_round = file.split('_')[2]
         gp_round = int(gp_round) if gp_round.isdigit() else gp_round
         file_df.insert(loc=1, column='Round', value=gp_round)
+
+        file_df.insert(loc=2, column='Event', value='Sprint' if 'sprint_results' in file else 'Race')
+        
         gp_location = file.split('_')[3]
-        file_df.insert(loc=2, column='Location', value=gp_location)
+        file_df.insert(loc=3, column='Location', value=gp_location)
         year_data_df = pd.concat([year_data_df, file_df], ignore_index=True)
+    
     return year_data_df.sort_values(by='Round')
 
 def autofill_driver_data_given_id(all_data_df: pd.DataFrame, driver_ids: list, id_column: str):
@@ -113,7 +119,7 @@ def autofill_driver_data_given_id(all_data_df: pd.DataFrame, driver_ids: list, i
     return result_df.sort_values(by='DriverId').reset_index(drop=True)
 
 def preprocess_all_data(years):
-    print("\nStarting data preprocessing...")
+    print("Starting data preprocessing...")
     
     all_data_df = pd.DataFrame()
     raw_data_files = os.listdir(RAW_DATA_PATH)
@@ -127,7 +133,7 @@ def preprocess_all_data(years):
         all_data_df = pd.concat([all_data_df, year_df], ignore_index=True)
         preprocessed_file_name = f'{year}_season_results.csv'
         year_df.to_csv(os.path.join(PREPROCESSED_DATA_PATH, preprocessed_file_name), index=False)
-        print(f"   - Saved preprocessed data to [green]{PREPROCESSED_DATA_PATH}/{preprocessed_file_name}[/green]\n")
+        print(f"   - Saved preprocessed data to [magenta]{PREPROCESSED_DATA_PATH}/{preprocessed_file_name}[/magenta]\n")
     
     print("Gathering data on drivers...")
     
@@ -135,11 +141,14 @@ def preprocess_all_data(years):
     drivers_df = autofill_driver_data_given_id(all_data_df, unique_drivers, 'DriverId')
     drivers_df.to_csv(os.path.join(PREPROCESSED_DATA_PATH, 'drivers.csv'), index=False)
     
-    print(f"   - Saved drivers data to [green]{PREPROCESSED_DATA_PATH}/drivers.csv[/green]\n")
+    print(f"   - Saved drivers data to [magenta]{PREPROCESSED_DATA_PATH}/drivers.csv[/magenta]\n")
     print("Data preprocessing completed.")
 
 # -------------------- FEATURE ENGINEERING FUNCTIONS --------------------
-def calculate_ranks_after_rounds(training_data_df:pd.DataFrame):
+def calculate_season_long_stats(training_data_df:pd.DataFrame):
+    # Calculate the share of points each race had on a team's total points for the season across all teams
+    training_data_df["RelativePointsShare"] = training_data_df["TotalPoints"] / training_data_df.groupby(["Year", "Round"])["TotalPoints"].transform("sum")
+
     # Calculate each team's rank after the given round
     training_data_df["CurrentRankAfterRound"] = training_data_df.groupby(["Year", "Round"])["TotalPoints"].rank(method="dense", ascending=False).astype(int)
     
@@ -147,10 +156,12 @@ def calculate_ranks_after_rounds(training_data_df:pd.DataFrame):
     training_data_df["PercentileRankAfterRound"] = 1.0 - (training_data_df["CurrentRankAfterRound"] - 1) / (training_data_df.groupby(["Year","Round"])["TeamId"].transform('nunique') - 1)
 
     training_data_df = training_data_df[["Year", "TeamId", "TeamName", "Location", "Round", "RoundsCompleted", "RoundsRemaining", \
-                                         "PointsEarnedThisRound", "DNFsThisRound", "PointsLast3Rounds", "DNFsLast3Rounds", "DNFRate", \
+                                         "PointsEarnedThisRound", "MaxDriverPoints", "MinDriverPoints", "DriverPointsGap", \
+                                         "DNFsThisRound", "PointsLast3Rounds", "DNFsLast3Rounds", "DNFRate", \
                                          "AvgGridPosition", "AvgPosition", "AvgPointsPerRace", "TotalPointFinishes", \
-                                         "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", "CurrentRankAfterRound", \
-                                         "PercentileRankAfterRound", "FinalRank"]]
+                                         "FormRatio", "Consistency", "TotalPodiums", "TotalPoints", "hadPenaltyThisYear", \
+                                         "ProjectedGrowth", "ProjectedSeasonTotalPoints", "RelativePointsShare", \
+                                         "CurrentRankAfterRound", "PercentileRankAfterRound", "FinalRank"]]
     
     return training_data_df
 
@@ -212,18 +223,18 @@ def feature_engineer_all_data(years, incomplete_years=None):
         print(current_year_standings, end="\n\n")
         
         current_teamids_list = current_year_standings["TeamId"].unique().tolist()
-        current_race_locations = all_seasons_data_df[all_seasons_data_df["Year"] == year]["Location"].unique().tolist()
+        total_rounds_in_year = int(all_seasons_data_df.loc[all_seasons_data_df["Year"] == year, "Round"].max())
         
         for team_id in current_teamids_list:
             
             print(f"   - Processing the {year} season data for [magenta]{current_year_standings.loc[current_year_standings['TeamId'] == team_id, 'TeamName'].iloc[0]}[/magenta] ({team_id})...")
             current_team_results_df = pd.DataFrame()
             
-            for location in current_race_locations:
+            for round in range(1, total_rounds_in_year + 1):
                 temp_df = pd.DataFrame()
                 
                 # Get the current race results for a specific team from a specific year from a specific round
-                current_race_results = all_seasons_data_df.loc[(all_seasons_data_df["TeamId"] == team_id) & (all_seasons_data_df["Year"] == year) & (all_seasons_data_df["Location"] == location)]
+                current_race_results = all_seasons_data_df.loc[(all_seasons_data_df["TeamId"] == team_id) & (all_seasons_data_df["Year"] == year) & (all_seasons_data_df["Round"] == round)]
                 
                 # Raw statistics
                 temp_df["Year"] = current_race_results["Year"]
@@ -232,9 +243,14 @@ def feature_engineer_all_data(years, incomplete_years=None):
                 temp_df["Location"] = current_race_results["Location"]
                 temp_df["Round"] = current_race_results["Round"]
                 temp_df["RoundsCompleted"] = current_race_results["Round"] - 1
-                temp_df["RoundsRemaining"] = len(current_race_locations) - current_race_results["Round"]
+                temp_df["RoundsRemaining"] = total_rounds_in_year - current_race_results["Round"]
                 temp_df["DNFsThisRound"] = current_race_results["isDNF"].sum()
                 temp_df["PointsEarnedThisRound"] = current_race_results["Points"].sum()
+
+                # Raw driver statistics from the round
+                temp_df["MaxDriverPoints"] = current_race_results.loc[current_race_results["Event"] == "Race", "Points"].max()
+                temp_df["MinDriverPoints"] = current_race_results.loc[current_race_results["Event"] == "Race", "Points"].min()
+                temp_df["DriverPointsGap"] = temp_df["MaxDriverPoints"] - temp_df["MinDriverPoints"]
 
                 # Statistics that will be re-calculated over the course of the season
                 temp_df["AvgGridPosition"] = current_race_results["GridPosition"].expanding().mean().tail(1)
@@ -251,11 +267,7 @@ def feature_engineer_all_data(years, incomplete_years=None):
                 
                 current_team_results_df = pd.concat([current_team_results_df, temp_df], ignore_index=True)
             
-            current_team_results_df["PointsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
-                                                                                .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
-            current_team_results_df["DNFsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["DNFsThisRound"] \
-                                                                                .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
-            
+            # Re-calculating stats for "point-in-season" values
             current_team_results_df["AvgGridPosition"] = current_team_results_df["AvgGridPosition"].expanding().mean()
             current_team_results_df["AvgPosition"] = current_team_results_df["AvgPosition"].expanding().mean()
             current_team_results_df["DNFRate"] = current_team_results_df["DNFRate"].expanding().mean()
@@ -263,6 +275,24 @@ def feature_engineer_all_data(years, incomplete_years=None):
             current_team_results_df["TotalPointFinishes"] = current_team_results_df["TotalPointFinishes"].cumsum()
             current_team_results_df["TotalPodiums"] = current_team_results_df["TotalPodiums"].cumsum()
             current_team_results_df["TotalPoints"] = current_team_results_df["TotalPoints"].cumsum()
+
+            # Consistency and form statistics
+            current_team_results_df["PointsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
+                                                                                .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
+            current_team_results_df["DNFsLast3Rounds"] = current_team_results_df.groupby(["Year", "TeamId"])["DNFsThisRound"] \
+                                                                                .rolling(window=3, min_periods=1).sum().reset_index(level=[0, 1], drop=True)
+            
+            current_team_results_df["FormRatio"] = current_team_results_df["PointsLast3Rounds"] / (current_team_results_df["AvgPointsPerRace"] * 3 + 1e-6)
+            
+            rolling_mean_last_5_rounds = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
+                                                .rolling(window=5, min_periods=1).mean().reset_index(level=[0, 1], drop=True)
+            rolling_std_last_5_rounds = current_team_results_df.groupby(["Year", "TeamId"])["PointsEarnedThisRound"] \
+                                                .rolling(window=5, min_periods=1).std().fillna(0).reset_index(level=[0, 1], drop=True)
+            current_team_results_df["Consistency"] = 1 / (1 + (rolling_std_last_5_rounds / (rolling_mean_last_5_rounds + 1e-6)))        # Rescaling with a sigmoid to ensure values between 0 and 1
+
+            # Projected growth statistics
+            current_team_results_df["ProjectedGrowth"] = rolling_mean_last_5_rounds * current_team_results_df["RoundsRemaining"]
+            current_team_results_df["ProjectedSeasonTotalPoints"] = current_team_results_df["TotalPoints"] + current_team_results_df["ProjectedGrowth"]
             
             # Split into full/incomplete years
             if incomplete_years and year in incomplete_years:
@@ -274,21 +304,21 @@ def feature_engineer_all_data(years, incomplete_years=None):
             else:
                 training_data_df = pd.concat([training_data_df, current_team_results_df], ignore_index=True)
 
-            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "PointsEarnedThisRound", "DNFsThisRound", \
+            print(current_team_results_df[["Location", "RoundsCompleted", "RoundsRemaining", "PointsEarnedThisRound", "DriverPointsGap", "DNFsThisRound", \
                                            "PointsLast3Rounds", "DNFsLast3Rounds", "DNFRate", "AvgGridPosition", "AvgPosition", \
-                                           "AvgPointsPerRace", "TotalPointFinishes", "TotalPodiums", "TotalPoints", \
-                                           "hadPenaltyThisYear", "FinalRank"]], end="\n\n")
+                                           "AvgPointsPerRace", "FormRatio", "Consistency", "TotalPointFinishes", "TotalPodiums", \
+                                           "TotalPoints", "ProjectedGrowth", "FinalRank"]], end="\n\n")
 
     if not training_data_df.empty:
         # Calculate approximate rank and percentile of rank after each round
-        training_data_df = calculate_ranks_after_rounds(training_data_df)
+        training_data_df = calculate_season_long_stats(training_data_df)
 
         training_data_df.to_csv(os.path.join(CLEAN_DATA_PATH, "f1_clean_data.csv"), index=False)
         print(f"Saved full seasons to [magenta]f1_clean_data.csv[/magenta]")
     
     if not incomplete_training_data_df.empty:
         # Calculate approximate rank and percentile of rank after each round
-        incomplete_training_data_df = calculate_ranks_after_rounds(incomplete_training_data_df)
+        incomplete_training_data_df = calculate_season_long_stats(incomplete_training_data_df)
 
         # Rename the "FinalRank" column to "CurrentRank"
         incomplete_training_data_df = incomplete_training_data_df.rename(columns={"FinalRank": "CurrentRank"})

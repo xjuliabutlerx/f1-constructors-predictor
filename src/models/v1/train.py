@@ -125,7 +125,7 @@ if __name__ == "__main__":
     }
     model_training_params_df = pd.DataFrame(model_param_data)
 
-    print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL ***[/yellow]")
+    print("[yellow]*** TRAINING F1 CONSTRUCTOR CLASSIFIER MODEL v1 ***[/yellow]")
     print()
 
     print("Training Parameters:")
