@@ -1,4 +1,5 @@
 from datetime import datetime
+from pages.utils.predict_scenario import run_scenario
 
 import numpy as np
 import os
@@ -236,4 +237,10 @@ if __name__ == "__main__":
 
         input_df = generate_features(st.session_state.scenario_df, teams)
 
-        st.dataframe(input_df, hide_index=True)
+        st.write("Generated Scenario Statistics")
+        st.dataframe(input_df.tail(len(teams)), hide_index=True)
+
+        scenario_results_df = run_scenario(input_df)
+
+        st.write("Predicted Constructor's Championship Standings")
+        st.dataframe(scenario_results_df, hide_index=True)
