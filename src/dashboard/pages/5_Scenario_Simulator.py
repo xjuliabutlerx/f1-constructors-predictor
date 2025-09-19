@@ -132,9 +132,9 @@ def generate_features(input_df:pd.DataFrame, teams:list):
         avg_position = statistics.mean([float(previous_team_results["AvgPosition"].iloc[0]), float(avg_position)])
         dnf_rate = statistics.mean([float(previous_team_results["DNFRate"].iloc[0]), float(dnf_rate)])
         avg_points_per_race = statistics.mean([float(previous_team_results["AvgPointsPerRace"].iloc[0]), float(avg_points_per_race)])
-        total_point_finishes = statistics.mean([float(previous_team_results["TotalPointFinishes"].iloc[0]), float(total_point_finishes)])
-        total_podiums = statistics.mean([float(previous_team_results["TotalPodiums"].iloc[0]), float(total_podiums)])
-        total_points = statistics.mean([float(previous_team_results["TotalPoints"].iloc[0]), float(total_points)])
+        total_point_finishes =float(previous_team_results["TotalPointFinishes"].iloc[0]) + float(total_point_finishes)
+        total_podiums = float(previous_team_results["TotalPodiums"].iloc[0]) + float(total_podiums)
+        total_points = float(previous_team_results["TotalPoints"].iloc[0]) + float(total_points)
 
         row.append(avg_grid_position)
         row.append(avg_position)
@@ -241,6 +241,12 @@ if __name__ == "__main__":
         st.dataframe(input_df.tail(len(teams)), hide_index=True)
 
         scenario_results_df = run_scenario(input_df)
+
+        scenario_results_df.insert(loc=0, column="Current Standings", \
+                                   value=["McLaren", "Ferrari", "Mercedes", "Red Bull Racing", "Williams", "Aston Martin", \
+                                          "Racing Bulls", "Kick Sauber", "Haas F1 Team", "Alpine"])
+        scenario_results_df = scenario_results_df[["Current Standings", "Monaco Model v3", "Silverstone Model v3", \
+                                                   "Suzuka Model v3", "Spa-Francorchamps Model v3", "Baku Model v3"]]
 
         st.write("Predicted Constructor's Championship Standings")
         st.dataframe(scenario_results_df, hide_index=True)
