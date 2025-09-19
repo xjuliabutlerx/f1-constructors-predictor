@@ -118,7 +118,7 @@ if __name__ == "__main__":
         print(f"{i}. {team}")
     print()
 
-    orig_pred_df = pd.read_csv(os.path.join("../../data/clean/", "f1_clean_prediction_data.csv"))
+    orig_pred_df = pd.read_csv(pred_data_path)
     last_round = orig_pred_df["Round"].max()
     last_race_df = orig_pred_df[orig_pred_df["Round"] == last_round]
     last_race_df = last_race_df.sort_values("TotalPoints", ascending=False)["TotalPoints"]

@@ -142,7 +142,7 @@ if __name__ == "__main__":
     print()
 
     ensemble_results_df = pd.DataFrame()
-    ensemble_results_df["Current Rank"] = dataset.df.sort_values("CurrentRank", ascending=True)["TeamName"].unique().tolist()
+    ensemble_results_df["Team"] = dataset.df.sort_values("CurrentRank", ascending=True)["TeamName"].unique().tolist()
 
     orig_pred_df = pd.read_csv(os.path.join("../../data/clean/", "f1_clean_prediction_data.csv"))
     last_round = orig_pred_df["Round"].max()
