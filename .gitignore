@@ -17,16 +17,12 @@ __pycache__/
 # Ignore any .DS_Store
 .DS_Store
 
-# Don't push any checkpoints or models for now
+# Don't push any checkpoints
 *.pth
-*.pt
 
-# Ignore the training data directory since this is for personal use
+# Ignore directories for personal use
+models_in_progress/
 training_data/
 training_data_v2/
-
-# Ignore the notes directory since this is for personal use
 notes/
-
-# Ignore the notes directory since this is for personal use
 test/
