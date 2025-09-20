@@ -3,7 +3,7 @@ import streamlit as st
 
 st.set_page_config(page_title="F1 Ranking Models", page_icon="🏎️", layout="wide")
 
-st.title("Formula 1 Constructors' Championship Ranking Model")
+st.title("🏎️ Formula 1 Constructors' Championship Ranking Model")
 st.subheader("A Fan Project")
 
 st.header("About This Project")
@@ -36,17 +36,32 @@ st.markdown("""
 """)
 
 st.header("Tech Stack")
-st.html(
-    """
-    <li>Python 3.11.5</li>
-    <li><a href='https://github.com/theOehrly/Fast-F1' target='_blank'>fastf1</a></li>
-    <li>torch (PyTorch)</li>
-    <li>pandas</li>
-    <li>numpy</li>
-    <li>scipy</li>
-    <li>matplotlib</li>
-    <li>seaborn</li>
-    """
-)
+st.markdown("""
+- Python 3.11.5
+- Jupyter Notebook
+- [`fastf1`](https://github.com/theOehrly/Fast-F1)
+- pandas
+- numpy
+- scipy
+- matplotlib
+- seaborn
+""")
 
-st.html("For the full training and model architecture code, please see the GitHub repository <a href='https://github.com/xjuliabutlerx/f1-constructors-predictor' target='_blank'>f1-constructors-predictor</a>.")
+# st.html(
+#     """
+#     <div>
+#     <ul>
+#         <li>Python 3.11.5</li>
+#         <li><a href='https://github.com/theOehrly/Fast-F1' target='_blank'>fastf1</a></li>
+#         <li>torch (PyTorch)</li>
+#         <li>pandas</li>
+#         <li>numpy</li>
+#         <li>scipy</li>
+#         <li>matplotlib</li>
+#         <li>seaborn</li>
+#     </ul>
+#     </div>
+#     """
+# )
+
+st.html("For the full training and model architecture code, please see my GitHub repository <a href='https://github.com/xjuliabutlerx/f1-constructors-predictor' target='_blank'>f1-constructors-predictor</a>.")

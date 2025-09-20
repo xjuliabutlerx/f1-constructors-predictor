@@ -5,7 +5,7 @@ import numpy as np
 
 st.set_page_config(page_title="Current Predictions", page_icon="📈", layout="wide")
 
-st.title("Current 2025 Constructors' Championship Ranking Predictions")
+st.title("📈 Current 2025 Constructors' Championship Ranking Predictions")
 
 st.write("As of September 13, 2025, these are the current 2025 F1 Constructor's Championship ranking predictions of my models. These predictions were run with data collected for all the races in the 2025 season up to the Italian Grand Prix in Monza.")
 
@@ -32,7 +32,7 @@ st.markdown('''
 Key Points:
 - The point gaps between the top 4 teams are too large (20+) to cause much change at this stage in the 2025 season.
 - There may be some movement in the mid- and low-ranking positions between Aston Martin and Racing Bulls and even between Kick Sauber and Haas F1 Team.
-- In the event of a major dispute among the McLaren drivers (such as a double DNF), there *could* be an opportunity for Ferrari to win—but this is unlikely.
+- Unless McLaren doesn't lock down the top spot in the World Constructor's Championship, there *could* be an opportunity for Ferrari to win—but this is unlikely given the statistics this year.
 ''')
 
 st.header("v1 Model Ensemble Predictions")

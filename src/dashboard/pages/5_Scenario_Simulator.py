@@ -183,7 +183,11 @@ def generate_features(input_df:pd.DataFrame, teams:list):
 if __name__ == "__main__":
     st.set_page_config(page_title="Scenario Simulator", page_icon="🎰", layout="wide")
 
-    st.title("F1 Constructor's Championship Ranking Model Scenario Simulator")
+    st.title("🎰 F1 Constructor's Championship Ranking Model Scenario Simulator")
+
+    st.write("*Beta Mode*")
+
+    st.write("Using the current points system and table below, enter your prediction of the 2025 Azerbaijan Grand Prix results and see how this could affect the World Constructor's Championship rankings.")
 
     cwd = os.getcwd()
 
@@ -237,8 +241,8 @@ if __name__ == "__main__":
 
         input_df = generate_features(st.session_state.scenario_df, teams)
 
-        st.write("Generated Scenario Statistics")
-        st.dataframe(input_df.tail(len(teams)), hide_index=True)
+        # st.write("Generated Scenario Statistics")
+        # st.dataframe(input_df.tail(len(teams)), hide_index=True)
 
         scenario_results_df = run_scenario(input_df)
 

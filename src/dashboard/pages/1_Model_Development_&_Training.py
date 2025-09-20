@@ -6,7 +6,7 @@ cwd = os.getcwd()
 
 st.set_page_config(page_title="Model Development & Training", page_icon="🔧", layout="wide")
 
-st.title("Model Development & Training")
+st.title("🔧 Model Development & Training")
 
 st.header("Project Development Timeline")
 
@@ -149,7 +149,7 @@ st.markdown('''
 2. **Feature relationships are nonlinear and complex.** After the first model run, I noticed a need for more complex and higher-order data features, like rolling averages, standard deviations, and feature interactions. While ordinal regression can manage these inputs, the relationship between these data features can add even more complexity. For instance, both drivers in a team may do well in qualifying (`AvgGridPosition`), but one may not perform well during the race or DNF (`DNFRate`), creating a larger gap in points earned between the two drivers (`DriverPointsGap`) and ultimately causing the team to lose out on points.
 ''')
 
-st.write("Additionally, while I was interested in learning about a new type of model architecture, I didn't have any prior experience with it. In school, however, I studied neural network architecture (as well as convolutional neural networks, long short term models, and transformers), so I ultimately transitioned to this model architecture and trained it as classification/regression hybrids to predict final ranks.")
+st.write("Additionally, while I was interested in learning about a new type of model architecture, I didn't have any prior experience with it. In school, I studied neural network architecture (as well as convolutional neural networks, long short term models, and transformers), so I ultimately transitioned to this model architecture and trained it as classification/regression hybrids to predict final ranks.")
 
 st.header("Why is Spearman's Rho Used Over Traditional Accuracy?")
 st.write("Traditional accuracy simply answers the question: *how often did the model predict the correct rank?* However, in ranking tasks, this metric can be misleading because although a model may predict one team to be 5th instead of 6th, this is penalized the same as predicting a team to be 5th instead of 10th. The traditional accuracy metric fails to capture how close the model is when it is incorrect.")

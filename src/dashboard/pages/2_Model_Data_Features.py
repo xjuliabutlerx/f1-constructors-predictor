@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Model Data Features", page_icon="⚙️", layout="wide")
 
-st.title("Model Data Features")
+st.title("⚙️ Model Data Features")
 
 st.write("Here is an overview of all the data features I either extracted or engineered from available Formula 1 race data. The features have been divided up into 3 distinct sections. First, raw features consists of statistics that were readily available in the race data downloaded from `fastf1`. Second, calculated features include simple counts, sums, averages, standard deviations, and percentages that were created during the preprocessing phase. Finally, the third section is interaction features. These are model inputs that are a combination of one or more calculated statistics and were developed in the feature engineering phase of the project.")
 
