@@ -39,19 +39,24 @@ st.dataframe(v1_summary_df, hide_index=True, width="content")
 st.write("Although the accuracy, represented by Spearman's Rho, seems relatively high at above 0.95 for each model, the heatmaps below display *where* the accuracy came from. For all the v1 models, you can see the precision taper off after the 4th or 5th positions and then increase towards the last 2 or 3 positions.")
 
 with st.expander("Monaco v1 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Monaco Model Heatmap 2025-09-07.png"))
+    st.image(os.path.join("src", "models", "v1", "heatmaps", "Monaco Model Heatmap 2025-09-07.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Monaco Model Heatmap 2025-09-07.png"))
 
 with st.expander("Silverstone v1 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Silverstone Model Heatmap 2025-09-06.png"))
+    st.image(os.path.join("src", "models", "v1", "heatmaps", "Silverstone Model Heatmap 2025-09-06.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Silverstone Model Heatmap 2025-09-06.png"))
 
 with st.expander("Suzuka v1 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Suzuka Model Heatmap 2025-09-07.png"))
+    st.image(os.path.join("src", "models", "v1", "heatmaps", "Suzuka Model Heatmap 2025-09-07.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Suzuka Model Heatmap 2025-09-07.png"))
 
 with st.expander("Spa-Francorchamps v1 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-07.png"))
+    st.image(os.path.join("src", "models", "v1", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-07.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-07.png"))
 
 with st.expander("Baku v1 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Baku Model Heatmap 2025-09-07.png"))
+    st.image(os.path.join("src", "models", "v1", "heatmaps", "Baku Model Heatmap 2025-09-07.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v1", "heatmaps", "Baku Model Heatmap 2025-09-07.png"))
 
 st.subheader("2. v2 Model Development")
 st.markdown('''
@@ -77,19 +82,24 @@ st.dataframe(v2_summary_df, hide_index=True, width="content")
 st.write("While the accuracy for some models decreased and error increased, it's important to note the more consistent accuracy across all positions in the heatmaps below.")
 
 with st.expander("Monaco v2 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Monaco Model Heatmap 2025-09-09.png"))
+    st.image(os.path.join("src", "models", "v2", "heatmaps", "Monaco Model Heatmap 2025-09-09.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Monaco Model Heatmap 2025-09-09.png"))
 
 with st.expander("Silverstone v2 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Silverstone Model Heatmap 2025-09-09.png"))
+    st.image(os.path.join("src", "models", "v2", "heatmaps", "Silverstone Model Heatmap 2025-09-09.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Silverstone Model Heatmap 2025-09-09.png"))
 
 with st.expander("Suzuka v2 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Suzuka Model Heatmap 2025-09-09.png"))
+    st.image(os.path.join("src", "models", "v2", "heatmaps", "Suzuka Model Heatmap 2025-09-09.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Suzuka Model Heatmap 2025-09-09.png"))
 
 with st.expander("Spa-Francorchamps v2 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-09.png"))
+    st.image(os.path.join("src", "models", "v2", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-09.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-09.png"))
 
 with st.expander("Baku v2 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Baku Model Heatmap 2025-09-09.png"))
+    st.image(os.path.join("src", "models", "v2", "heatmaps", "Baku Model Heatmap 2025-09-09.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v2", "heatmaps", "Baku Model Heatmap 2025-09-09.png"))
 
 st.subheader("3. v3 Model Development")
 st.markdown('''
@@ -117,19 +127,24 @@ st.dataframe(v3_summary_df, hide_index=True, width="content")
 st.write("The accuracies for the v3 models noticeably increased from v1 and v2, and their relatively consistent accuracies across all positions can be seen in the heatmaps below:")
 
 with st.expander("Monaco v3 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Monaco Model Heatmap 2025-09-13.png"))
+    st.image(os.path.join("src", "models", "v3", "heatmaps", "Monaco Model Heatmap 2025-09-13.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Monaco Model Heatmap 2025-09-13.png"))
 
 with st.expander("Silverstone v3 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Silverstone Model Heatmap 2025-09-13.png"))
+    st.image(os.path.join("src", "models", "v3", "heatmaps", "Silverstone Model Heatmap 2025-09-13.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Silverstone Model Heatmap 2025-09-13.png"))
 
 with st.expander("Suzuka v3 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Suzuka Model Heatmap 2025-09-13.png"))
+    st.image(os.path.join("src", "models", "v3", "heatmaps", "Suzuka Model Heatmap 2025-09-13.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Suzuka Model Heatmap 2025-09-13.png"))
 
 with st.expander("Spa-Francorchamps v3 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-13.png"))
+    st.image(os.path.join("src", "models", "v3", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-13.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Spa-Francorchamps Model Heatmap 2025-09-13.png"))
 
 with st.expander("Baku v3 Heatmap"):
-    st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Baku Model Heatmap 2025-09-13.png"))
+    st.image(os.path.join("src", "models", "v3", "heatmaps", "Baku Model Heatmap 2025-09-13.png"))
+    # st.image(os.path.join(cwd, "..", "models", "v3", "heatmaps", "Baku Model Heatmap 2025-09-13.png"))
 
 st.header("A Brief Overview of the Model Training & Testing Methdology")
 st.write("While the model features and architecture varied across the 3 generations of models, the training methodology remained the same. The target y variable was always 'FinalRank', which was an integer value 1 through n, where n is the number of teams in the current Formula 1 season.")
