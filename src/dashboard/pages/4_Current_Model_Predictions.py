@@ -15,6 +15,10 @@ V1_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-09-13 v1 ensemble
 V2_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-09-13 v2 ensemble predictions.csv"))
 V3_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-09-13 v3 ensemble predictions.csv"))
 
+V1_PREDICTIONS = [["Team", "Current Points", "Monaco Model", "Silverstone Model", "Suzuka Model", "Spa-Francorchamps Model", "Baku Model"]]
+V2_PREDICTIONS = [["Team", "Current Points", "Monaco Model", "Silverstone Model", "Suzuka Model", "Spa-Francorchamps Model", "Baku Model"]]
+V3_PREDICTIONS = [["Team", "Current Points", "Monaco Model", "Silverstone Model", "Suzuka Model", "Spa-Francorchamps Model", "Baku Model"]]
+
 # V1_PREDICTIONS = pd.read_csv(os.path.join(cwd, "../../predictions/2025-09-13 v1 ensemble predictions.csv"))
 # V2_PREDICTIONS = pd.read_csv(os.path.join(cwd, "../../predictions/2025-09-13 v2 ensemble predictions.csv"))
 # V3_PREDICTIONS = pd.read_csv(os.path.join(cwd, "../../predictions/2025-09-13 v3 ensemble predictions.csv"))
