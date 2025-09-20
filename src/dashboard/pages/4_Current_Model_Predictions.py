@@ -19,6 +19,10 @@ V3_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-09-13 v3 ensemble
 # V2_PREDICTIONS = pd.read_csv(os.path.join(cwd, "../../predictions/2025-09-13 v2 ensemble predictions.csv"))
 # V3_PREDICTIONS = pd.read_csv(os.path.join(cwd, "../../predictions/2025-09-13 v3 ensemble predictions.csv"))
 
+V1_PREDICTIONS = V1_PREDICTIONS[["Team", "Current Points", "Monaco Model", "Silverstone Model", "Suzuka Model", "Spa-Francorchamps Model", "Baku Model"]]
+V2_PREDICTIONS = V2_PREDICTIONS[["Team", "Current Points", "Monaco Model v2", "Silverstone Model v2", "Suzuka Model v2", "Spa-Francorchamps Model v2", "Baku Model v2"]]
+V3_PREDICTIONS = V3_PREDICTIONS[["Team", "Current Points", "Monaco Model v3", "Silverstone Model v3", "Suzuka Model v3", "Spa-Francorchamps Model v3", "Baku Model v3"]]
+
 st.header("v3 Model Ensemble Predictions")
 st.subheader("*The Best of Both Worlds - balancing recency and season-long consistency*")
 st.dataframe(V3_PREDICTIONS, width="content", hide_index=True)
