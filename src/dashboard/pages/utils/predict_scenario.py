@@ -36,13 +36,14 @@ def predict(model_path:str, dataset_df:pd.DataFrame, feature_cols, device:torch.
 
 def run_scenario(input_df:pd.DataFrame):
     print(input_df)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # current_dir = os.path.dirname(os.path.abspath(__file__))
     device = get_device()
 
     input_df.to_csv("temp_dataset.csv", index=False)
     dataset = F1Dataset("temp_dataset.csv")
 
-    v3_models_path = os.path.join(current_dir, "..", "..", "..", "models", "v3", "pretrained_models")
+    v3_models_path = os.path.join("src", "models", "v3", "pretrained_models")
+    # v3_models_path = os.path.join(current_dir, "..", "..", "..", "models", "v3", "pretrained_models")
     v3_models = os.listdir(v3_models_path)
     scenario_results_df = pd.DataFrame()
 

@@ -60,7 +60,8 @@ def generate_features(input_df:pd.DataFrame, teams:list):
        'ProjectedSeasonTotalPoints', 'RelativePointsShare',
        'CurrentRankAfterRound', 'PercentileRankAfterRound']
 
-    previous_round_df = pd.read_csv(os.path.join(os.getcwd(), "templates/input_data_template.csv"))
+    previous_round_df = pd.read_csv(os.path.join("src", "dashboard", "templates", "input_data_template.csv"))
+    # previous_round_df = pd.read_csv(os.path.join(os.getcwd(), "templates/input_data_template.csv"))
     previous_round_df = previous_round_df[data_features]
 
     scenario_df = input_df.copy()
@@ -191,7 +192,8 @@ if __name__ == "__main__":
 
     cwd = os.getcwd()
 
-    scenario_df = pd.read_csv(os.path.join(cwd, "templates/scenario_template_data.csv"))
+    scenario_df = pd.read_csv(os.path.join("src", "dashboard", "templates", "scenario_template_data.csv"))
+    # scenario_df = pd.read_csv(os.path.join(cwd, "templates/scenario_template_data.csv"))
     scenario_df = scenario_df[["TeamName", "BroadcastName"]].sort_values(by="TeamName", ascending=True).reset_index(drop=True)
     scenario_df["PredictedPoints"] = 0
     scenario_df["DNF"] = False
