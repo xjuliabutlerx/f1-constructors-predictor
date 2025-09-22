@@ -31,7 +31,7 @@ st.markdown('''
 Key Points:
 - McLaren is still firmly in the lead despite the recent stream of wins by Max Verstappen / Red Bull Racing and steady point gains by Ferrari and Mercedes.
 - Given the latest momentum by Mercedes, they have taken a narrow lead over Ferrari and are generally predicted to maintain this position.
-- Due to Racing Bulls' excellent qualifying and race performance in Baku, they have surged past Aston Martin for 6th position.
+- Due to Racing Bulls' excellent qualifying and race performance in Baku, they have surged past Aston Martin for 6th position and are expected to keep this lead.
 ''')
 
 st.header("v2 Model Ensemble Predictions")
