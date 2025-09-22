@@ -43,7 +43,7 @@ def is_dnf(row):
         return 0
 
 def generate_features(input_df:pd.DataFrame, teams:list):
-    columns = data_features = ['Year', 'TeamName', 'Round', 'RoundsCompleted', 'RoundsRemaining',
+    columns = ['Year', 'TeamName', 'Round', 'RoundsCompleted', 'RoundsRemaining',
        'DNFsThisRound', 'PointsEarnedThisRound', 'MaxDriverPoints',
        'MinDriverPoints', 'DriverPointsGap', 'AvgGridPosition', 'AvgPosition',
        'DNFRate', 'AvgPointsPerRace', 'TotalPointFinishes', 'TotalPodiums',
@@ -66,7 +66,7 @@ def generate_features(input_df:pd.DataFrame, teams:list):
 
     scenario_df = input_df.copy()
 
-    round_to_predict = 17
+    round_to_predict = 18
 
     scenario_df.insert(loc=0, column="Year", value=datetime.now().year)
     scenario_df.insert(loc=1, column="Round", value=round_to_predict)
@@ -88,7 +88,7 @@ def generate_features(input_df:pd.DataFrame, teams:list):
     # Group last race data by team
     for team in teams:
         current_team_results = scenario_df.loc[scenario_df["TeamName"] == team].copy()
-        previous_team_results = previous_round_df.loc[previous_round_df["TeamName"] == team].copy()
+        previous_team_results = previous_round_df.loc[(previous_round_df["TeamName"] == team) & (previous_round_df["Round"] == round_to_predict - 1)].copy()
 
         row = []
 
@@ -147,13 +147,17 @@ def generate_features(input_df:pd.DataFrame, teams:list):
         row.append(had_penalty_this_year)
         
         # Consistency and form statistics
-        points_last_three_rounds = previous_team_results["PointsEarnedThisRound"].iloc[0] + points_earned_this_round
-        dnfs_last_three_rounds = previous_team_results["DNFsThisRound"].iloc[0] + dnfs_this_round
-                    
+        points_last_three_rounds = previous_round_df.groupby(["Round", "TeamName"])["PointsEarnedThisRound"] \
+                                                    .tail(2).sum() + points_earned_this_round
+        dnfs_last_three_rounds = previous_round_df.groupby(["Round", "TeamName"])["DNFsThisRound"] \
+                                                    .tail(2).sum() + dnfs_this_round
         form_ratio = points_last_three_rounds / (avg_points_per_race * 3 + 1e-6)
                     
-        rolling_mean_last_5_rounds = statistics.mean([float(previous_team_results["PointsEarnedThisRound"].iloc[0]), float(points_earned_this_round)])
-        rolling_std_last_5_rounds = statistics.stdev([float(previous_team_results["PointsEarnedThisRound"].iloc[0]), float(points_earned_this_round)])
+        rolling_mean_last_5_rounds = ((previous_round_df.groupby(["Round", "TeamName"])["PointsEarnedThisRound"]).tail(4).mean() * 4 + points_earned_this_round) / 5
+        last_4_races_points = previous_round_df.groupby(["Round", "TeamName"])["PointsEarnedThisRound"].tail(4).to_numpy()
+        last_5_races_points = np.append(last_4_races_points, points_earned_this_round)
+        rolling_std_last_5_rounds = last_5_races_points.std()
+
         consistency = 1 / (1 + (rolling_std_last_5_rounds / (rolling_mean_last_5_rounds + 1e-6)))        # Rescaling with a sigmoid to ensure values between 0 and 1
         
         # Projected growth statistics
@@ -186,9 +190,9 @@ if __name__ == "__main__":
 
     st.title("🎰 F1 Constructor's Championship Ranking Model Scenario Simulator")
 
-    st.write("*Beta Mode*")
+    st.write(":red[*Beta Mode*]")
 
-    st.write("Using the current points system and table below, enter your prediction of the 2025 Azerbaijan Grand Prix results and see how this could affect the World Constructor's Championship rankings.")
+    st.write("Using the current points system and table below, enter your prediction of the :blue[2025 Singapore Grand Prix] results and see how this could affect the World Constructor's Championship rankings.")
 
     cwd = os.getcwd()
 
