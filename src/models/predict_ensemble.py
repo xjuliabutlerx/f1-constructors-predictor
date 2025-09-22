@@ -144,7 +144,7 @@ if __name__ == "__main__":
     ensemble_results_df = pd.DataFrame()
     ensemble_results_df["Team"] = dataset.df.sort_values("CurrentRank", ascending=True)["TeamName"].unique().tolist()
 
-    orig_pred_df = pd.read_csv(os.path.join("../../data/clean/", "f1_clean_prediction_data.csv"))
+    orig_pred_df = pd.read_csv(pred_data_path)
     last_round = orig_pred_df["Round"].max()
     last_race_df = orig_pred_df[orig_pred_df["Round"] == last_round]
     last_race_df = last_race_df.sort_values("TotalPoints", ascending=False)["TotalPoints"]
@@ -165,8 +165,8 @@ if __name__ == "__main__":
     results_filename = f"{current_datetime}_v{version}_ensemble_predictions"
     if save_as_excel:
         results_filename += ".xlsx"
-        ensemble_results_df.to_excel(f"../../data/ensemble-predictions/{results_filename}", index=False)
+        ensemble_results_df.to_excel(f"../../predictions/{results_filename}", index=False)
     else:
         results_filename += ".csv"
-        ensemble_results_df.to_csv(f"../../data/ensemble-predictions/{results_filename}", index=False)
+        ensemble_results_df.to_csv(f"../../predictions/{results_filename}", index=False)
     print(f"Saved results to [magenta]{results_filename}[/magenta].", end="\n\n")
