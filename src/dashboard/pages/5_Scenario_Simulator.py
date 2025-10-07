@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
     st.write(":red[*Beta Mode*]")
 
-    st.write("Using the current points system and table below, enter your prediction of the :blue[2025 Singapore Grand Prix] results and see how this could affect the World Constructor's Championship rankings.")
+    st.write("Using the current points system and table below, enter your prediction of the :blue[2025 United States Grand Prix] results and see how this could affect the World Constructor's Championship rankings.")
 
     cwd = os.getcwd()
 
