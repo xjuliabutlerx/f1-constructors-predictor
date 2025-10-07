@@ -253,8 +253,8 @@ if __name__ == "__main__":
         scenario_results_df = run_scenario(input_df)
 
         scenario_results_df.insert(loc=0, column="Current Standings", \
-                                   value=["McLaren", "Ferrari", "Mercedes", "Red Bull Racing", "Williams", "Aston Martin", \
-                                          "Racing Bulls", "Kick Sauber", "Haas F1 Team", "Alpine"])
+                                   value=["McLaren", "Mercedes", "Ferrari", "Red Bull Racing", "Williams", "Racing Bulls", \
+                                          "Aston Martin", "Kick Sauber", "Haas F1 Team", "Alpine"])
         scenario_results_df = scenario_results_df[["Current Standings", "Monaco Model v3", "Silverstone Model v3", \
                                                    "Suzuka Model v3", "Spa-Francorchamps Model v3", "Baku Model v3"]]
 
