@@ -12,13 +12,13 @@ st.write("While the results from all 3 model ensembles are presented, the overal
 
 cwd = os.getcwd()
 
-V1_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-10-06 v1 ensemble predictions.csv"))
-V2_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-10-06 v2 ensemble predictions.csv"))
-V3_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-10-06 v3 ensemble predictions.csv"))
+V1_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-10-07 v1 ensemble predictions.csv"))
+V2_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-10-07 v2 ensemble predictions.csv"))
+V3_PREDICTIONS = pd.read_csv(os.path.join("predictions", "2025-10-07 v3 ensemble predictions.csv"))
 
-# V1_PREDICTIONS = pd.read_csv(os.path.join(cwd, "..", "..", "predictions", "2025-10-06 v1 ensemble predictions.csv"))
-# V2_PREDICTIONS = pd.read_csv(os.path.join(cwd, "..", "..", "predictions", "2025-10-06 v2 ensemble predictions.csv"))
-# V3_PREDICTIONS = pd.read_csv(os.path.join(cwd, "..", "..", "predictions", "2025-10-06 v3 ensemble predictions.csv"))
+# V1_PREDICTIONS = pd.read_csv(os.path.join(cwd, "..", "..", "predictions", "2025-10-07 v1 ensemble predictions.csv"))
+# V2_PREDICTIONS = pd.read_csv(os.path.join(cwd, "..", "..", "predictions", "2025-10-07 v2 ensemble predictions.csv"))
+# V3_PREDICTIONS = pd.read_csv(os.path.join(cwd, "..", "..", "predictions", "2025-10-07 v3 ensemble predictions.csv"))
 
 V1_PREDICTIONS = V1_PREDICTIONS[["Team", "Current Points", "Monaco Model", "Silverstone Model", "Suzuka Model", "Spa-Francorchamps Model", "Baku Model"]]
 V2_PREDICTIONS = V2_PREDICTIONS[["Team", "Current Points", "Monaco Model v2", "Silverstone Model v2", "Suzuka Model v2", "Spa-Francorchamps Model v2", "Baku Model v2"]]
@@ -30,7 +30,7 @@ st.dataframe(V3_PREDICTIONS, width="content", hide_index=True)
 st.markdown('''
 Key Points:
 - Since there are only 6 races remaining, the models are predicting less movement from the current positions.
-- Of course, given the tie between Aston Martin and Racing Bulls, the models present some disagreement over who will take 6th place. However, Racing Bulls seem to have an edge given their season-long performance.
+- Despite Ferrari's declining performance, the models do not think Red Bull Racing will be able take 3rd place from Ferrari. This is likely due to the fact that the Ferrari drivers both earn points at each race unlike Red Bull Racing.
 ''')
 
 st.header("v2 Model Ensemble Predictions")
