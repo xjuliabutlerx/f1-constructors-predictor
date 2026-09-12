@@ -1,5 +1,5 @@
 from datetime import datetime
-from pages.utils.predict_scenario import run_scenario
+from predict_scenario import run_scenario
 
 import numpy as np
 import os
@@ -60,8 +60,7 @@ def generate_features(input_df:pd.DataFrame, teams:list):
        'ProjectedSeasonTotalPoints', 'RelativePointsShare',
        'CurrentRankAfterRound', 'PercentileRankAfterRound']
 
-    previous_round_df = pd.read_csv(os.path.join("src", "dashboard", "templates", "input_data_template.csv"))
-    # previous_round_df = pd.read_csv(os.path.join(os.getcwd(), "templates/input_data_template.csv"))
+    previous_round_df = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "input_data_template.csv"))
     previous_round_df = previous_round_df[data_features]
 
     scenario_df = input_df.copy()
@@ -194,10 +193,7 @@ if __name__ == "__main__":
 
     st.write("Using the current points system and table below, enter your prediction of the :blue[2025 Mexico Grand Prix] results and see how this could affect the World Constructor's Championship rankings.")
 
-    cwd = os.getcwd()
-
-    scenario_df = pd.read_csv(os.path.join("src", "dashboard", "templates", "scenario_template_data.csv"))
-    # scenario_df = pd.read_csv(os.path.join(cwd, "templates/scenario_template_data.csv"))
+    scenario_df = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "scenario_template_data.csv"))
     scenario_df = scenario_df[["TeamName", "BroadcastName"]].sort_values(by="TeamName", ascending=True).reset_index(drop=True)
     scenario_df["PredictedPoints"] = 0
     scenario_df["DNF"] = False
